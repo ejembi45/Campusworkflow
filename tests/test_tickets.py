@@ -86,6 +86,21 @@ class TestCreateTicket(unittest.TestCase):
         with self.assertRaises(ValueError):
             create_ticket("T001", "Wi-Fi is down", "", "high", 15)
 
+
+    def test_rejects_invalid_category(self):
+        with self.assertRaises(ValueError):
+            create_ticket(1, "Wi-Fi is down", "Food", "high", 15)
+
+    def test_normalizes_category_capitalization(self):
+        ticket = create_ticket(
+            "T001", "Wi-Fi is down", "nEtWoRk", "high", 15
+        )
+        self.assertEqual(ticket["category"], "Network")
+
+    def test_rejects_zero_affected_users(self):
+        with self.assertRaises(ValueError):
+            create_ticket(1, "Wi-Fi is down", "Network", "high", 0)
+
     def test_rejects_negative_affected_users(self):
         with self.assertRaises(ValueError):
             create_ticket("T001", "Printer issue", "Hardware", "low", -3)
