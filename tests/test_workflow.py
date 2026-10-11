@@ -7,6 +7,7 @@ from campusflow.workflow import (
     start_ticket,
     resolve_ticket,
     reopen_ticket,
+    close_ticket,
     get_unresolved_tickets,
 )
 
@@ -119,7 +120,7 @@ class TestAssignTicket(unittest.TestCase):
         self.assertEqual(report["total"], 0)
         self.assertEqual(
             report["by_status"],
-            {"open": 0, "in_progress": 0, "resolved": 0},
+            {"open": 0, "in_progress": 0, "resolved": 0, "closed": 0},
         )
         self.assertEqual(
             report["by_priority"],
@@ -139,12 +140,67 @@ class TestAssignTicket(unittest.TestCase):
         self.assertEqual(report["total"], 2)
         self.assertEqual(
             report["by_status"],
-            {"open": 1, "in_progress": 0, "resolved": 1},
+            {"open": 1, "in_progress": 0, "resolved": 1, "closed": 0},
         )
         self.assertEqual(
             report["by_priority"],
             {"critical": 1, "high": 1, "medium": 0, "low": 0},
         )
+
+
+    def test_close_resolved_ticket(self):
+        self.ticket["status"] = "resolved"
+        result = close_ticket(self.ticket)
+        self.assertEqual(result["status"], "closed")
+        self.assertIs(result, self.ticket)
+
+    def test_reject_closing_open_ticket(self):
+        with self.assertRaises(ValueError):
+            close_ticket(self.ticket)
+
+    def test_closed_ticket_cannot_be_reopened(self):
+        self.ticket["status"] = "closed"
+        with self.assertRaises(ValueError):
+            reopen_ticket(self.ticket)
+
+    def test_closed_ticket_cannot_be_reassigned(self):
+        self.ticket["status"] = "closed"
+        with self.assertRaises(ValueError):
+            assign_ticket(self.ticket, "Faith")
+
+    def test_closed_ticket_excluded_from_unresolved_queue(self):
+        closed_ticket = {**self.ticket, "id": 2, "status": "closed"}
+        result = get_unresolved_tickets([self.ticket, closed_ticket])
+        self.assertEqual([ticket["id"] for ticket in result], [1])
+
+    def test_report_counts_closed_tickets(self):
+        closed_ticket = {**self.ticket, "id": 2, "status": "closed"}
+        report = generate_report([self.ticket, closed_ticket])
+        self.assertEqual(report["total"], 2)
+        self.assertEqual(
+            report["by_status"],
+            {"open": 1, "in_progress": 0, "resolved": 0, "closed": 1},
+        )
+
+
+    def test_reject_start_ticket_with_whitespace_assignee(self):
+        self.ticket["assigned_to"] = " "
+        with self.assertRaises(ValueError):
+            start_ticket(self.ticket)
+
+    def test_reject_start_ticket_with_non_string_assignee(self):
+        self.ticket["assigned_to"] = 123
+        with self.assertRaises(ValueError):
+            start_ticket(self.ticket)
+
+    def test_reject_assignment_to_closed_ticket(self):
+        self.ticket["status"] = "closed"
+        with self.assertRaisesRegex(ValueError, "Reopen the ticket"):
+            assign_ticket(self.ticket, "Faith")
+
+    def test_generate_report_rejects_non_list_input(self):
+        with self.assertRaisesRegex(ValueError, "Tickets must be a list"):
+            generate_report({"status": "open", "priority": "low"})
 
 
 if __name__ == "__main__":

@@ -8,11 +8,16 @@ def assign_ticket(ticket, assignee):
         if field not in ticket:
             raise ValueError(f"Ticket is missing required field: {field}")
 
-    if ticket["status"] not in ["open", "in_progress", "resolved"]:
+    if ticket["status"] not in [
+        "open",
+        "in_progress",
+        "resolved",
+        "closed",
+    ]:
         raise ValueError("Invalid ticket status")
 
-    if ticket["status"] == "resolved":
-        raise ValueError("Reopen the ticket before modifying it")
+    if ticket["status"] in ("resolved", "closed"):
+        raise ValueError("Reopen the ticket before assigning it")
 
     if not isinstance(assignee, str) or not assignee.strip():
         raise ValueError("Assignee name is required")
@@ -31,7 +36,9 @@ def start_ticket(ticket):
     if ticket["status"] != "open":
         raise ValueError("Only open tickets can be started")
 
-    if not ticket["assigned_to"]:
+    assignee = ticket["assigned_to"]
+
+    if not isinstance(assignee, str) or not assignee.strip():
         raise ValueError("Assign the ticket before starting it")
 
     ticket["status"] = "in_progress"
@@ -66,6 +73,20 @@ def reopen_ticket(ticket):
     return ticket
 
 
+
+def close_ticket(ticket):
+    if not isinstance(ticket, dict):
+        raise ValueError("Ticket must be a dictionary")
+
+    if "status" not in ticket:
+        raise ValueError("Ticket is missing required fields")
+
+    if ticket["status"] != "resolved":
+        raise ValueError("Only resolved tickets can be closed")
+
+    ticket["status"] = "closed"
+    return ticket
+
 def get_unresolved_tickets(tickets):
     if not isinstance(tickets, list):
         raise ValueError("Tickets must be a list")
@@ -84,7 +105,7 @@ def get_unresolved_tickets(tickets):
         if "status" not in ticket or "priority" not in ticket or "id" not in ticket:
             raise ValueError("Ticket is missing required fields")
 
-        if ticket["status"] not in ["open", "in_progress", "resolved"]:
+        if ticket["status"] not in ["open", "in_progress", "resolved", "closed"]:
             raise ValueError("Invalid ticket status")
 
         if ticket["priority"] not in priority_order:
@@ -95,7 +116,7 @@ def get_unresolved_tickets(tickets):
 
     unresolved = [
         ticket for ticket in tickets
-        if ticket["status"] != "resolved"
+        if ticket["status"] not in ["resolved", "closed"]
     ]
 
     return sorted(

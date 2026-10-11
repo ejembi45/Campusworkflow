@@ -25,7 +25,7 @@ The priority rules must be evaluated in this order:
 4. Low: none of the above.
 
 ## 5. Ticket workflow
-New tickets begin as open. A ticket must be assigned before moving to in_progress. A resolved ticket must be explicitly reopened to open before modification.
+New tickets begin as open. A ticket must be assigned before moving to in_progress. Tickets normally transition from open to in_progress to resolved. A resolved ticket can be reopened to open or closed. Closed tickets are final and cannot be reopened or modified through workflow operations. The unresolved queue excludes both resolved and closed tickets. Reports count all four statuses.
 
 ## 6. Queue ordering
 Unresolved tickets are sorted by critical, high, medium, then low priority. Tickets with equal priority are sorted by numerical ticket ID.

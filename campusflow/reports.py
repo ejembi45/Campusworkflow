@@ -1,9 +1,13 @@
 
 def generate_report(tickets):
+    if not isinstance(tickets, list):
+        raise ValueError("Tickets must be a list")
+
     by_status = {
         "open": 0,
         "in_progress": 0,
         "resolved": 0,
+        "closed": 0,
     }
 
     by_priority = {
