@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from campusflow.service import TicketService
@@ -21,6 +22,13 @@ def read_integer(prompt, minimum=0):
             print("Please enter a valid whole number.")
 
 
+def read_ticket_id(prompt="Ticket ID: "):
+    ticket_id = input(prompt).strip().upper()
+    if not re.fullmatch(r"T\d{3,}", ticket_id):
+        raise ValueError("Ticket ID must use the format T001")
+    return ticket_id
+
+
 def show_ticket(ticket):
     print("\n--- Ticket Details ---")
     print(f"ID: {ticket['id']}")
@@ -40,12 +48,12 @@ def create_new_ticket(service):
     affected_users = read_integer("Number of affected users: ")
 
     tickets = service.get_all()
-    ticket_id = max((ticket["id"] for ticket in tickets), default=0) + 1
+    ticket_id = "T{:03d}".format(max((int(ticket["id"][1:]) for ticket in tickets), default=0) + 1)
 
     ticket = service.create(
         ticket_id, title, category, urgency, affected_users
     )
-    print(f"\nTicket #{ticket['id']} created successfully.")
+    print(f"\nTicket {ticket['id']} created successfully.")
     show_ticket(ticket)
 
 
@@ -58,25 +66,25 @@ def list_tickets(service):
 
     for ticket in tickets:
         print(
-            f"#{ticket['id']} | {ticket['priority']} | "
+            f"{ticket['id']} | {ticket['priority']} | "
             f"{ticket['status']} | {ticket['title']} | "
             f"Assigned to: {ticket['assigned_to'] or 'Nobody'}"
         )
 
 
 def find_ticket(service):
-    ticket_id = read_integer("Ticket ID: ", minimum=1)
+    ticket_id = read_ticket_id()
     show_ticket(service.get(ticket_id))
 
 
 def assign_ticket(service):
-    ticket_id = read_integer("Ticket ID: ", minimum=1)
+    ticket_id = read_ticket_id()
     staff_name = input("Staff member's name: ").strip()
     show_ticket(service.assign(ticket_id, staff_name))
 
 
 def change_status(service, action):
-    ticket_id = read_integer("Ticket ID: ", minimum=1)
+    ticket_id = read_ticket_id()
 
     actions = {
         "start": service.start,
@@ -99,7 +107,7 @@ def list_unresolved(service):
             {"critical": 0, "high": 1, "medium": 2, "low": 3}[
                 ticket["priority"]
             ],
-            ticket["id"],
+            int(ticket["id"][1:]),
         )
     )
 
@@ -110,7 +118,7 @@ def list_unresolved(service):
     print("\n--- Unresolved Tickets (highest priority first) ---")
     for ticket in tickets:
         print(
-            f"#{ticket['id']} | {ticket['priority']} | "
+            f"{ticket['id']} | {ticket['priority']} | "
             f"{ticket['status']} | {ticket['title']}"
         )
 

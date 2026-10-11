@@ -29,3 +29,10 @@ Run the following command from the project root:
 ## Project status
 
 The project is under development. Features will be marked complete only after implementation and testing.
+
+## Ticket IDs
+
+Each ticket has a unique string ID consisting of `T` followed by at least
+three digits, such as `T001`, `T002`, and `T003`. New tickets receive the
+next available numeric ID. Existing saved tickets retain their IDs during
+normal application use.

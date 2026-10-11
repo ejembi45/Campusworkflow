@@ -10,8 +10,7 @@ from campusflow.tickets import create_ticket
 class TestTicketStorage(unittest.TestCase):
     def setUp(self):
         self.storage = TicketStorage()
-        self.ticket = create_ticket(
-            1, "Wi-Fi is down", "Network", "high", 15
+        self.ticket = create_ticket("T001", "Wi-Fi is down", "Network", "high", 15
         )
 
     def test_add_ticket(self):
@@ -23,19 +22,18 @@ class TestTicketStorage(unittest.TestCase):
     def test_get_ticket(self):
         self.storage.add_ticket(self.ticket)
 
-        result = self.storage.get_ticket(1)
+        result = self.storage.get_ticket("T001")
 
         self.assertEqual(result, self.ticket)
 
     def test_get_missing_ticket(self):
-        result = self.storage.get_ticket(99)
+        result = self.storage.get_ticket("T099")
 
         self.assertIsNone(result)
 
     def test_get_all_tickets(self):
         self.storage.add_ticket(self.ticket)
-        second_ticket = create_ticket(
-            2, "Printer is broken", "Hardware", "medium", 4
+        second_ticket = create_ticket("T002", "Printer is broken", "Hardware", "medium", 4
         )
         self.storage.add_ticket(second_ticket)
 
@@ -51,8 +49,8 @@ class TestTicketStorage(unittest.TestCase):
     def test_update_status_to_in_progress(self):
         self.storage.add_ticket(self.ticket)
 
-        self.storage.assign_ticket(1, "Ada")
-        result = self.storage.update_status(1, "in_progress")
+        self.storage.assign_ticket("T001", "Ada")
+        result = self.storage.update_status("T001", "in_progress")
 
         self.assertEqual(result["status"], "in_progress")
 
@@ -60,25 +58,25 @@ class TestTicketStorage(unittest.TestCase):
         self.storage.add_ticket(self.ticket)
 
         with self.assertRaises(ValueError):
-            self.storage.update_status(1, "closed")
+            self.storage.update_status("T001", "closed")
 
     def test_close_ticket_after_in_progress(self):
         self.storage.add_ticket(self.ticket)
-        self.storage.assign_ticket(1, "Ada")
-        self.storage.update_status(1, "in_progress")
-        self.storage.update_status(1, "resolved")
+        self.storage.assign_ticket("T001", "Ada")
+        self.storage.update_status("T001", "in_progress")
+        self.storage.update_status("T001", "resolved")
 
-        result = self.storage.update_status(1, "closed")
+        result = self.storage.update_status("T001", "closed")
 
         self.assertEqual(result["status"], "closed")
 
     def test_resolved_ticket_can_be_reopened(self):
         self.storage.add_ticket(self.ticket)
-        self.storage.assign_ticket(1, "Ada")
-        self.storage.update_status(1, "in_progress")
-        self.storage.update_status(1, "resolved")
+        self.storage.assign_ticket("T001", "Ada")
+        self.storage.update_status("T001", "in_progress")
+        self.storage.update_status("T001", "resolved")
 
-        result = self.storage.update_status(1, "open")
+        result = self.storage.update_status("T001", "open")
 
         self.assertEqual(result["status"], "open")
 
@@ -86,57 +84,57 @@ class TestTicketStorage(unittest.TestCase):
         self.storage.add_ticket(self.ticket)
 
         with self.assertRaises(ValueError):
-            self.storage.update_status(1, "in_progress")
+            self.storage.update_status("T001", "in_progress")
 
     def test_closed_ticket_cannot_be_changed(self):
         self.storage.add_ticket(self.ticket)
-        self.storage.assign_ticket(1, "Ada")
-        self.storage.update_status(1, "in_progress")
-        self.storage.update_status(1, "resolved")
-        self.storage.update_status(1, "closed")
+        self.storage.assign_ticket("T001", "Ada")
+        self.storage.update_status("T001", "in_progress")
+        self.storage.update_status("T001", "resolved")
+        self.storage.update_status("T001", "closed")
 
         with self.assertRaises(ValueError):
-            self.storage.update_status(1, "open")
+            self.storage.update_status("T001", "open")
 
     def test_invalid_status_is_rejected(self):
         self.storage.add_ticket(self.ticket)
 
         with self.assertRaises(ValueError):
-            self.storage.update_status(1, "pending")
+            self.storage.update_status("T001", "pending")
 
 
     def test_cannot_reassign_resolved_ticket(self):
         self.storage.add_ticket(self.ticket)
-        self.storage.assign_ticket(1, "Ada")
-        self.storage.update_status(1, "in_progress")
-        self.storage.update_status(1, "resolved")
+        self.storage.assign_ticket("T001", "Ada")
+        self.storage.update_status("T001", "in_progress")
+        self.storage.update_status("T001", "resolved")
 
         with self.assertRaisesRegex(
             ValueError, "Reopen the ticket before assigning it"
         ):
-            self.storage.assign_ticket(1, "Faith")
+            self.storage.assign_ticket("T001", "Faith")
 
     def test_cannot_reassign_closed_ticket(self):
         self.storage.add_ticket(self.ticket)
-        self.storage.assign_ticket(1, "Ada")
-        self.storage.update_status(1, "in_progress")
-        self.storage.update_status(1, "resolved")
-        self.storage.update_status(1, "closed")
+        self.storage.assign_ticket("T001", "Ada")
+        self.storage.update_status("T001", "in_progress")
+        self.storage.update_status("T001", "resolved")
+        self.storage.update_status("T001", "closed")
 
         with self.assertRaisesRegex(
             ValueError, "Reopen the ticket before assigning it"
         ):
-            self.storage.assign_ticket(1, "Faith")
+            self.storage.assign_ticket("T001", "Faith")
 
     def test_reject_empty_staff_name(self):
         self.storage.add_ticket(self.ticket)
 
         with self.assertRaises(ValueError):
-            self.storage.assign_ticket(1, "   ")
+            self.storage.assign_ticket("T001", "   ")
 
     def test_filter_tickets_by_status(self):
         ticket = self.storage.add_ticket({
-            "id": 1,
+            "id": "T001",
             "title": "Wi-Fi down",
             "category": "Network",
             "urgency": "high",
@@ -152,7 +150,7 @@ class TestTicketStorage(unittest.TestCase):
 
     def test_filter_tickets_by_priority(self):
         ticket = self.storage.add_ticket({
-            "id": 1,
+            "id": "T001",
             "title": "Wi-Fi down",
             "category": "Network",
             "urgency": "high",
@@ -168,7 +166,7 @@ class TestTicketStorage(unittest.TestCase):
 
     def test_filter_tickets_by_multiple_fields(self):
         ticket = self.storage.add_ticket({
-            "id": 1,
+            "id": "T001",
             "title": "Wi-Fi down",
             "category": "Network",
             "urgency": "high",
@@ -193,7 +191,7 @@ class TestTicketStorage(unittest.TestCase):
 
     def test_filter_tickets_returns_all_matching_tickets(self):
         first_ticket = {
-            "id": 1,
+            "id": "T001",
             "title": "Wi-Fi down",
             "category": "Network",
             "urgency": "high",
@@ -204,7 +202,7 @@ class TestTicketStorage(unittest.TestCase):
         }
 
         second_ticket = {
-            "id": 2,
+            "id": "T002",
             "title": "Printer broken",
             "category": "Hardware",
             "urgency": "low",
@@ -215,7 +213,7 @@ class TestTicketStorage(unittest.TestCase):
         }
 
         third_ticket = {
-            "id": 3,
+            "id": "T003",
             "title": "Login failure",
             "category": "Software",
             "urgency": "medium",
@@ -233,22 +231,21 @@ class TestTicketStorage(unittest.TestCase):
 
         self.assertEqual(
             [ticket["id"] for ticket in result],
-            [1, 3],
+            ["T001", "T003"],
         )
 
     def test_ticket_persists_after_reloading_storage(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "tickets.json"
             storage = TicketStorage(path)
-            ticket = create_ticket(
-                1, "Wi-Fi is down", "Network", "high", 15
+            ticket = create_ticket("T001", "Wi-Fi is down", "Network", "high", 15
             )
 
             storage.add_ticket(ticket)
 
             reloaded_storage = TicketStorage(path)
 
-            self.assertEqual(reloaded_storage.get_ticket(1), ticket)
+            self.assertEqual(reloaded_storage.get_ticket("T001"), ticket)
 
     def test_malformed_json_raises_clear_error(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -261,8 +258,7 @@ class TestTicketStorage(unittest.TestCase):
     def test_duplicate_ids_in_json_are_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "tickets.json"
-            ticket = create_ticket(
-                1, "Wi-Fi is down", "Network", "high", 15
+            ticket = create_ticket("T001", "Wi-Fi is down", "Network", "high", 15
             )
             path.write_text(
                 json.dumps([ticket, ticket]),
@@ -280,16 +276,15 @@ class TestTicketStorage(unittest.TestCase):
             path = Path(folder) / "tickets.json"
             storage = TicketStorage(path)
 
-            ticket = create_ticket(
-                1, "Wi-Fi is down", "Network", "high", 15
+            ticket = create_ticket("T001", "Wi-Fi is down", "Network", "high", 15
             )
             storage.add_ticket(ticket)
-            storage.assign_ticket(1, "Faith")
+            storage.assign_ticket("T001", "Faith")
 
             reloaded_storage = TicketStorage(path)
 
             self.assertEqual(
-                reloaded_storage.get_ticket(1)["assigned_to"],
+                reloaded_storage.get_ticket("T001")["assigned_to"],
                 "Faith",
             )
 

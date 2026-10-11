@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 class TicketStorage:
@@ -27,8 +28,8 @@ class TicketStorage:
 
             ticket_id = ticket["id"]
 
-            if type(ticket_id) is not int or ticket_id <= 0:
-                raise ValueError("Ticket ID must be a positive integer")
+            if not isinstance(ticket_id, str) or not re.fullmatch(r"T\d{3,}", ticket_id):
+                raise ValueError("Ticket ID must use the format T001")
 
             if ticket_id in self.tickets:
                 raise ValueError(f"Duplicate ticket ID in JSON storage: {ticket_id}")

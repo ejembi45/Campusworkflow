@@ -1,3 +1,5 @@
+import re
+
 
 def assign_ticket(ticket, assignee):
     if not isinstance(ticket, dict):
@@ -111,8 +113,8 @@ def get_unresolved_tickets(tickets):
         if ticket["priority"] not in priority_order:
             raise ValueError("Invalid ticket priority")
 
-        if not isinstance(ticket["id"], int) or isinstance(ticket["id"], bool) or ticket["id"] <= 0:
-            raise ValueError("Ticket ID must be a positive integer")
+        if not isinstance(ticket["id"], str) or not re.fullmatch(r"T\d{3,}", ticket["id"]):
+            raise ValueError("Ticket ID must use the format T001")
 
     unresolved = [
         ticket for ticket in tickets
@@ -123,7 +125,7 @@ def get_unresolved_tickets(tickets):
         unresolved,
         key=lambda ticket: (
             priority_order[ticket["priority"]],
-            ticket["id"],
+            int(ticket["id"][1:]),
         ),
     )
 

@@ -33,13 +33,27 @@ class TestCalculatePriority(unittest.TestCase):
             calculate_priority("low", True)
 
 
+    def test_rejects_invalid_category(self):
+        with self.assertRaises(ValueError):
+            create_ticket("T001", "Computer issue", "Furniture", "low", 1)
+
+    def test_normalizes_category_capitalization(self):
+        ticket = create_ticket("T001", "Computer issue", " hardware ", "low", 1
+        )
+        self.assertEqual(ticket["category"], "Hardware")
+
+    def test_rejects_zero_affected_users(self):
+        with self.assertRaises(ValueError):
+            calculate_priority("low", 0)
+
+
+
 class TestCreateTicket(unittest.TestCase):
     def test_creates_ticket_with_expected_fields(self):
-        ticket = create_ticket(
-            1, "Wi-Fi is down", "Network", "high", 15
+        ticket = create_ticket("T001", "Wi-Fi is down", "Network", "high", 15
         )
 
-        self.assertEqual(ticket["id"], 1)
+        self.assertEqual(ticket["id"], "T001")
         self.assertEqual(ticket["title"], "Wi-Fi is down")
         self.assertEqual(ticket["category"], "Network")
         self.assertEqual(ticket["urgency"], "high")
@@ -50,35 +64,35 @@ class TestCreateTicket(unittest.TestCase):
 
     def test_rejects_invalid_ticket_id(self):
         with self.assertRaises(ValueError):
-            create_ticket(-1, "Wi-Fi is down", "Network", "high", 15)
+            create_ticket("BAD", "Wi-Fi is down", "Network", "high", 15)
 
     def test_rejects_zero_ticket_id(self):
         with self.assertRaises(ValueError):
-            create_ticket(0, "Wi-Fi is down", "Network", "high", 15)
+            create_ticket("T1", "Wi-Fi is down", "Network", "high", 15)
 
     def test_rejects_decimal_ticket_id(self):
         with self.assertRaises(ValueError):
-            create_ticket(1.5, "Wi-Fi is down", "Network", "high", 15)
+            create_ticket("001", "Wi-Fi is down", "Network", "high", 15)
 
     def test_rejects_boolean_ticket_id(self):
         with self.assertRaises(ValueError):
-            create_ticket(True, "Wi-Fi is down", "Network", "high", 15)
+            create_ticket("T00", "Wi-Fi is down", "Network", "high", 15)
 
     def test_rejects_empty_title(self):
         with self.assertRaises(ValueError):
-            create_ticket(1, "", "Network", "high", 15)
+            create_ticket("T001", "", "Network", "high", 15)
 
     def test_rejects_empty_category(self):
         with self.assertRaises(ValueError):
-            create_ticket(1, "Wi-Fi is down", "", "high", 15)
+            create_ticket("T001", "Wi-Fi is down", "", "high", 15)
 
     def test_rejects_negative_affected_users(self):
         with self.assertRaises(ValueError):
-            create_ticket(1, "Printer issue", "Hardware", "low", -3)
+            create_ticket("T001", "Printer issue", "Hardware", "low", -3)
 
     def test_rejects_invalid_urgency(self):
         with self.assertRaises(ValueError):
-            create_ticket(1, "Wi-Fi is down", "Network", "urgent", 5)
+            create_ticket("T001", "Wi-Fi is down", "Network", "urgent", 5)
 
 
 if __name__ == "__main__":

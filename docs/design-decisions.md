@@ -29,7 +29,7 @@ New tickets begin as open. A ticket must be assigned before moving to in_progres
 A closed ticket is final; a new occurrence must receive a new ticket ID.
 
 ## 6. Queue ordering
-Unresolved tickets are sorted by critical, high, medium, then low priority. Tickets with equal priority are sorted by numerical ticket ID.
+Unresolved tickets are sorted by critical, high, medium, then low priority. Ticket IDs use the format `T` followed by at least three digits, such as `T001` and `T002`. Tickets with equal priority are sorted by the numeric portion of the ID, so `T002` comes before `T010`.
 
 ## 7. Storage
 We use JSON for local persistence. The application must handle malformed JSON clearly and preserve unique ticket IDs when loading existing tickets.

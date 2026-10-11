@@ -15,7 +15,7 @@ from campusflow.workflow import (
 class TestAssignTicket(unittest.TestCase):
     def setUp(self):
         self.ticket = {
-            "id": 1,
+            "id": "T001",
             "title": "Campus Wi-Fi is down",
             "category": "Network",
             "urgency": "high",
@@ -90,19 +90,19 @@ class TestAssignTicket(unittest.TestCase):
     def test_get_unresolved_tickets_sorted(self):
         ticket2 = {
             **self.ticket,
-            "id": 2,
+            "id": "T002",
             "priority": "low",
             "status": "open",
         }
         ticket3 = {
             **self.ticket,
-            "id": 3,
+            "id": "T003",
             "priority": "high",
             "status": "in_progress",
         }
         ticket4 = {
             **self.ticket,
-            "id": 4,
+            "id": "T004",
             "priority": "critical",
             "status": "resolved",
         }
@@ -111,7 +111,7 @@ class TestAssignTicket(unittest.TestCase):
 
         result = get_unresolved_tickets(tickets)
 
-        self.assertEqual([t["id"] for t in result], [1, 3, 2])
+        self.assertEqual([t["id"] for t in result], ["T001", "T003", "T002"])
         self.assertEqual(len(tickets), 4)
 
     def test_generate_empty_report(self):
@@ -130,7 +130,7 @@ class TestAssignTicket(unittest.TestCase):
     def test_generate_report_with_tickets(self):
         resolved_ticket = {
             **self.ticket,
-            "id": 2,
+            "id": "T002",
             "status": "resolved",
             "priority": "high",
         }
@@ -169,12 +169,12 @@ class TestAssignTicket(unittest.TestCase):
             assign_ticket(self.ticket, "Faith")
 
     def test_closed_ticket_excluded_from_unresolved_queue(self):
-        closed_ticket = {**self.ticket, "id": 2, "status": "closed"}
+        closed_ticket = {**self.ticket, "id": "T002", "status": "closed"}
         result = get_unresolved_tickets([self.ticket, closed_ticket])
-        self.assertEqual([ticket["id"] for ticket in result], [1])
+        self.assertEqual([ticket["id"] for ticket in result], ["T001"])
 
     def test_report_counts_closed_tickets(self):
-        closed_ticket = {**self.ticket, "id": 2, "status": "closed"}
+        closed_ticket = {**self.ticket, "id": "T002", "status": "closed"}
         report = generate_report([self.ticket, closed_ticket])
         self.assertEqual(report["total"], 2)
         self.assertEqual(
