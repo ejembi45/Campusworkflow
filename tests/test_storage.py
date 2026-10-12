@@ -256,6 +256,22 @@ class TestTicketStorage(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Invalid JSON"):
                 TicketStorage(path)
 
+    def test_ticket_missing_status_in_json_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+            ticket = create_ticket(
+                "T001", "Wi-Fi is down", "Network", "high", 15
+            )
+            del ticket["status"]
+
+            path.write_text(
+                json.dumps([ticket]),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "Invalid ticket data"):
+                TicketStorage(path)
+
     def test_duplicate_ids_in_json_are_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "tickets.json"

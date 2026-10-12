@@ -23,8 +23,22 @@ class TicketStorage:
         if not isinstance(saved_tickets, list):
             raise ValueError("JSON storage must contain a list of tickets")
 
+        required_fields = {
+            "id",
+            "title",
+            "category",
+            "urgency",
+            "affected_users",
+            "priority",
+            "status",
+            "assigned_to",
+        }
+
         for ticket in saved_tickets:
-            if not isinstance(ticket, dict) or "id" not in ticket:
+            if (
+                not isinstance(ticket, dict)
+                or not required_fields.issubset(ticket)
+            ):
                 raise ValueError("Invalid ticket data in JSON storage")
 
             ticket_id = ticket["id"]
