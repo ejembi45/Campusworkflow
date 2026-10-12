@@ -94,6 +94,14 @@ class TestCreateTicket(unittest.TestCase):
         with self.assertRaises(ValueError):
             create_ticket("T001", "", "Network", "high", 15)
 
+    def test_rejects_whitespace_only_title(self):
+        with self.assertRaises(ValueError):
+            create_ticket("T001", "   ", "Network", "high", 15)
+
+    def test_rejects_non_string_title(self):
+        with self.assertRaises(ValueError):
+            create_ticket("T001", None, "Network", "high", 15)
+
     def test_rejects_empty_category(self):
         with self.assertRaises(ValueError):
             create_ticket("T001", "Wi-Fi is down", "", "high", 15)
