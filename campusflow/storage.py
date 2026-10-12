@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from pathlib import Path
 
@@ -42,9 +43,22 @@ class TicketStorage:
 
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with self.file_path.open("w", encoding="utf-8") as file:
-            json.dump(self.get_all_tickets(), file, indent=2)
-            file.write("\n")
+        temporary_path = self.file_path.with_name(
+            f".{self.file_path.name}.tmp"
+        )
+
+        try:
+            with temporary_path.open("w", encoding="utf-8") as file:
+                json.dump(self.get_all_tickets(), file, indent=2)
+                file.write("\n")
+                file.flush()
+                os.fsync(file.fileno())
+
+            os.replace(temporary_path, self.file_path)
+
+        finally:
+            if temporary_path.exists():
+                temporary_path.unlink()
 
     def add_ticket(self, ticket):
         ticket_id = ticket["id"]
