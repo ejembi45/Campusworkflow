@@ -87,6 +87,9 @@ class TestAssignTicket(unittest.TestCase):
         with self.assertRaises(ValueError):
             reopen_ticket(self.ticket)
 
+    def test_get_unresolved_tickets_with_empty_list(self):
+        self.assertEqual(get_unresolved_tickets([]), [])
+
     def test_get_unresolved_tickets_sorted(self):
         ticket2 = {
             **self.ticket,
