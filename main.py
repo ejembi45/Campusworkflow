@@ -137,6 +137,9 @@ def show_report(service):
     for priority, count in report["by_priority"].items():
         print(f"  {priority}: {count}")
 
+    print(f"\nTotal affected users: {report['total_affected_users']}")
+    print(f"Affected users on closed tickets: {report['closed_affected_users']}")
+
 
 def main():
     storage = TicketStorage(DATA_FILE)

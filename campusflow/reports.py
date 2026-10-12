@@ -33,9 +33,21 @@ def generate_report(tickets):
         by_status[status] += 1
         by_priority[priority] += 1
 
+    total_affected_users = sum(
+        ticket.get("affected_users", 0) for ticket in tickets
+    )
+
+    closed_affected_users = sum(
+        ticket.get("affected_users", 0)
+        for ticket in tickets
+        if ticket.get("status") == "closed"
+    )
+
     return {
         "total": len(tickets),
         "by_status": by_status,
         "by_priority": by_priority,
+        "total_affected_users": total_affected_users,
+        "closed_affected_users": closed_affected_users,
     }
 

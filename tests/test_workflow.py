@@ -183,6 +183,44 @@ class TestAssignTicket(unittest.TestCase):
         )
 
 
+    def test_report_counts_affected_users_across_all_tickets(self):
+        ticket1 = {**self.ticket, "affected_users": 15}
+        ticket2 = {
+            **self.ticket,
+            "id": "T002",
+            "affected_users": 10,
+            "status": "closed",
+        }
+
+        report = generate_report([ticket1, ticket2])
+
+        self.assertEqual(report["total_affected_users"], 25)
+
+    def test_report_counts_affected_users_on_closed_tickets(self):
+        open_ticket = {
+            **self.ticket,
+            "affected_users": 8,
+            "status": "open",
+        }
+        closed_ticket = {
+            **self.ticket,
+            "id": "T002",
+            "affected_users": 15,
+            "status": "closed",
+        }
+        another_closed_ticket = {
+            **self.ticket,
+            "id": "T003",
+            "affected_users": 10,
+            "status": "closed",
+        }
+
+        report = generate_report(
+            [open_ticket, closed_ticket, another_closed_ticket]
+        )
+
+        self.assertEqual(report["closed_affected_users"], 25)
+
     def test_reject_start_ticket_with_whitespace_assignee(self):
         self.ticket["assigned_to"] = " "
         with self.assertRaises(ValueError):
