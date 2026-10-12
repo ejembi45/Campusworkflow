@@ -67,7 +67,11 @@ class TicketStorage:
             raise ValueError("Ticket ID already exists")
 
         self.tickets[ticket_id] = ticket
-        self._save()
+        try:
+            self._save()
+        except Exception:
+            del self.tickets[ticket_id]
+            raise
         return ticket
 
     def get_ticket(self, ticket_id):

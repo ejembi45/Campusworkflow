@@ -2,6 +2,7 @@ import json
 import tempfile
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from campusflow.storage import TicketStorage
 from campusflow.tickets import create_ticket
@@ -287,6 +288,57 @@ class TestTicketStorage(unittest.TestCase):
                 reloaded_storage.get_ticket("T001")["assigned_to"],
                 "Faith",
             )
+
+
+    def test_failed_save_preserves_original_json(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+            storage = TicketStorage(path)
+            ticket = create_ticket(
+                "T001", "Wi-Fi is down", "Network", "high", 15
+            )
+
+            storage.add_ticket(ticket)
+            original_json = path.read_text(encoding="utf-8")
+
+            second_ticket = create_ticket(
+                "T002", "Printer is broken", "Hardware", "medium", 4
+            )
+
+            with patch(
+                "campusflow.storage.os.replace",
+                side_effect=OSError("Simulated replacement failure"),
+            ):
+                with self.assertRaisesRegex(
+                    OSError, "Simulated replacement failure"
+                ):
+                    storage.add_ticket(second_ticket)
+
+            self.assertEqual(
+                path.read_text(encoding="utf-8"),
+                original_json,
+            )
+            self.assertFalse(
+                path.with_name(".tickets.json.tmp").exists()
+            )
+
+    def test_failed_save_does_not_add_ticket_to_memory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+            storage = TicketStorage(path)
+            ticket = create_ticket(
+                "T001", "Wi-Fi is down", "Network", "high", 15
+            )
+
+            with patch(
+                "campusflow.storage.os.replace",
+                side_effect=OSError("Simulated replacement failure"),
+            ):
+                with self.assertRaises(OSError):
+                    storage.add_ticket(ticket)
+
+            self.assertIsNone(storage.get_ticket("T001"))
+            self.assertEqual(storage.get_all_tickets(), [])
 
 
 if __name__ == "__main__":
