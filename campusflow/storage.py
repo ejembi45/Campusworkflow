@@ -41,6 +41,14 @@ class TicketStorage:
             ):
                 raise ValueError("Invalid ticket data in JSON storage")
 
+            if ticket["status"] not in (
+                "open",
+                "in_progress",
+                "resolved",
+                "closed",
+            ):
+                raise ValueError("Invalid ticket data in JSON storage")
+
             ticket_id = ticket["id"]
 
             if not isinstance(ticket_id, str) or not re.fullmatch(r"T\d{3,}", ticket_id):
