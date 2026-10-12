@@ -115,7 +115,11 @@ class TicketStorage:
             )
 
         ticket["status"] = new_status
-        self._save()
+        try:
+            self._save()
+        except Exception:
+            ticket["status"] = current_status
+            raise
         return ticket
 
 
@@ -133,8 +137,13 @@ class TicketStorage:
                 "Reopen the ticket before assigning it"
             )
 
+        previous_assignee = ticket["assigned_to"]
         ticket["assigned_to"] = staff_name.strip()
-        self._save()
+        try:
+            self._save()
+        except Exception:
+            ticket["assigned_to"] = previous_assignee
+            raise
         return ticket
 
 

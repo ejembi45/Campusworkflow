@@ -322,6 +322,49 @@ class TestTicketStorage(unittest.TestCase):
                 path.with_name(".tickets.json.tmp").exists()
             )
 
+    def test_failed_save_preserves_ticket_status_in_memory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+            storage = TicketStorage(path)
+            ticket = create_ticket(
+                "T001", "Wi-Fi is down", "Network", "high", 15
+            )
+            storage.add_ticket(ticket)
+            storage.assign_ticket("T001", "Faith")
+
+            with patch(
+                "campusflow.storage.os.replace",
+                side_effect=OSError("Simulated replacement failure"),
+            ):
+                with self.assertRaises(OSError):
+                    storage.update_status("T001", "in_progress")
+
+            self.assertEqual(storage.get_ticket("T001")["status"], "open")
+            self.assertEqual(
+                TicketStorage(path).get_ticket("T001")["status"], "open"
+            )
+
+    def test_failed_save_preserves_ticket_assignment_in_memory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+            storage = TicketStorage(path)
+            ticket = create_ticket(
+                "T001", "Wi-Fi is down", "Network", "high", 15
+            )
+            storage.add_ticket(ticket)
+
+            with patch(
+                "campusflow.storage.os.replace",
+                side_effect=OSError("Simulated replacement failure"),
+            ):
+                with self.assertRaises(OSError):
+                    storage.assign_ticket("T001", "Faith")
+
+            self.assertIsNone(storage.get_ticket("T001")["assigned_to"])
+            self.assertIsNone(
+                TicketStorage(path).get_ticket("T001")["assigned_to"]
+            )
+
     def test_failed_save_does_not_add_ticket_to_memory(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "tickets.json"
