@@ -114,7 +114,7 @@ class TestAssignTicket(unittest.TestCase):
 
         result = get_unresolved_tickets(tickets)
 
-        self.assertEqual([t["id"] for t in result], ["T001", "T002"])
+        self.assertEqual([t["id"] for t in result], ["T001", "T003", "T002"])
         self.assertEqual(len(tickets), 4)
 
     def test_generate_empty_report(self):

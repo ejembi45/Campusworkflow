@@ -99,7 +99,7 @@ def change_status(service, action):
 def list_unresolved(service):
     tickets = [
         ticket for ticket in service.get_all()
-        if ticket["status"] == "open"
+        if ticket["status"] not in ("resolved", "closed")
     ]
 
     tickets.sort(

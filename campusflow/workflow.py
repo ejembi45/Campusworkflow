@@ -118,7 +118,7 @@ def get_unresolved_tickets(tickets):
 
     unresolved = [
         ticket for ticket in tickets
-        if ticket["status"] == "open"
+        if ticket["status"] not in ["resolved", "closed"]
     ]
 
     return sorted(
