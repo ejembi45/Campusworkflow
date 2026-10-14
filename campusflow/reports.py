@@ -1,3 +1,4 @@
+
 def generate_report(tickets):
     if not isinstance(tickets, list):
         raise ValueError("Tickets must be a list")
