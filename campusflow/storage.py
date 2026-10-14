@@ -3,6 +3,7 @@ import os
 import re
 from pathlib import Path
 
+
 class TicketStorage:
     def __init__(self, file_path=None):
         self.file_path = Path(file_path) if file_path is not None else None
@@ -51,11 +52,16 @@ class TicketStorage:
 
             ticket_id = ticket["id"]
 
-            if not isinstance(ticket_id, str) or not re.fullmatch(r"T\d{3,}", ticket_id):
+            if (
+                not isinstance(ticket_id, str)
+                or not re.fullmatch(r"T\d{3,}", ticket_id)
+            ):
                 raise ValueError("Ticket ID must use the format T001")
 
             if ticket_id in self.tickets:
-                raise ValueError(f"Duplicate ticket ID in JSON storage: {ticket_id}")
+                raise ValueError(
+                    f"Duplicate ticket ID in JSON storage: {ticket_id}"
+                )
 
             self.tickets[ticket_id] = ticket
 
@@ -94,6 +100,7 @@ class TicketStorage:
         except Exception:
             del self.tickets[ticket_id]
             raise
+
         return ticket
 
     def get_ticket(self, ticket_id):
@@ -101,9 +108,6 @@ class TicketStorage:
 
     def get_all_tickets(self):
         return list(self.tickets.values())
-
-
-
 
     def update_status(self, ticket_id, new_status):
         ticket = self.get_ticket(ticket_id)
@@ -142,8 +146,8 @@ class TicketStorage:
         except Exception:
             ticket["status"] = current_status
             raise
-        return ticket
 
+        return ticket
 
     def assign_ticket(self, ticket_id, staff_name):
         ticket = self.get_ticket(ticket_id)
@@ -155,9 +159,7 @@ class TicketStorage:
             raise ValueError("Staff name must be a non-empty string")
 
         if ticket["status"] in ("resolved", "closed"):
-            raise ValueError(
-                "Reopen the ticket before assigning it"
-            )
+            raise ValueError("Reopen the ticket before assigning it")
 
         previous_assignee = ticket["assigned_to"]
         ticket["assigned_to"] = staff_name.strip()
@@ -166,11 +168,25 @@ class TicketStorage:
         except Exception:
             ticket["assigned_to"] = previous_assignee
             raise
+
         return ticket
 
-
-    def filter_tickets(self, status=None, priority=None, category=None, assigned_to=None):
+    def filter_tickets(
+        self,
+        status=None,
+        priority=None,
+        category=None,
+        assigned_to=None,
+        title=None,
+    ):
         results = self.get_all_tickets()
+
+        if title is not None:
+            search_text = title.casefold()
+            results = [
+                ticket for ticket in results
+                if search_text in ticket["title"].casefold()
+            ]
 
         if status is not None:
             results = [
