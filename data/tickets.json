@@ -1,0 +1,132 @@
+[
+  {
+    "id": "T001",
+    "title": "Light Bulb dear",
+    "category": "Other",
+    "urgency": "medium",
+    "affected_users": 23,
+    "priority": "high",
+    "status": "open",
+    "assigned_to": "Mathias"
+  },
+  {
+    "id": "T002",
+    "title": "Persistence Test",
+    "category": "Other",
+    "urgency": "low",
+    "affected_users": 1,
+    "priority": "low",
+    "status": "open",
+    "assigned_to": null
+  },
+  {
+    "id": "T003",
+    "title": "Add tests for failed JSON saves",
+    "category": "Other",
+    "urgency": "high",
+    "affected_users": 1,
+    "priority": "high",
+    "status": "in_progress",
+    "assigned_to": "Mr. Mathias"
+  },
+  {
+    "id": "T004",
+    "title": "Add ticket search by title",
+    "category": "Other",
+    "urgency": "medium",
+    "affected_users": 1,
+    "priority": "medium",
+    "status": "open",
+    "assigned_to": "Ms Faith"
+  },
+  {
+    "id": "T005",
+    "title": "Improve ticket input validation",
+    "category": "Other",
+    "urgency": "high",
+    "affected_users": 1,
+    "priority": "high",
+    "status": "in_progress",
+    "assigned_to": "Mr. John"
+  },
+  {
+    "id": "T006",
+    "title": "Expand report coverage",
+    "category": "Other",
+    "urgency": "medium",
+    "affected_users": 1,
+    "priority": "medium",
+    "status": "in_progress",
+    "assigned_to": "Ms Blessing"
+  },
+  {
+    "id": "T007",
+    "title": "Test unresolved queue sorting",
+    "category": "Other",
+    "urgency": "medium",
+    "affected_users": 1,
+    "priority": "medium",
+    "status": "resolved",
+    "assigned_to": "Mr. Emmanuel"
+  },
+  {
+    "id": "T008",
+    "title": "Document installation and testing",
+    "category": "Other",
+    "urgency": "low",
+    "affected_users": 1,
+    "priority": "low",
+    "status": "in_progress",
+    "assigned_to": "Mr. Gabriel"
+  },
+  {
+    "id": "T009",
+    "title": "Fi-Wi network is down",
+    "category": "Network",
+    "urgency": "high",
+    "affected_users": 15,
+    "priority": "critical",
+    "status": "closed",
+    "assigned_to": "Mr Kingsley"
+  },
+  {
+    "id": "T010",
+    "title": "Missing Laptops",
+    "category": "Hardware",
+    "urgency": "high",
+    "affected_users": 10,
+    "priority": "critical",
+    "status": "closed",
+    "assigned_to": "Mr. God'swill"
+  },
+  {
+    "id": "T011",
+    "title": "the car in the parking lounge needs repair",
+    "category": "Other",
+    "urgency": "high",
+    "affected_users": 1,
+    "priority": "high",
+    "status": "open",
+    "assigned_to": "FAITH"
+  },
+  {
+    "id": "T012",
+    "title": "hardware",
+    "category": "Hardware",
+    "urgency": "medium",
+    "affected_users": 5,
+    "priority": "medium",
+    "status": "open",
+    "assigned_to": "isaac"
+  },
+  {
+    "id": "T013",
+    "title": "unresolved high test",
+    "category": "Network",
+    "urgency": "high",
+    "affected_users": 10,
+    "priority": "critical",
+    "status": "open",
+    "assigned_to": null
+  }
+]
