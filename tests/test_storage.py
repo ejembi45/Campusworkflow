@@ -11,7 +11,8 @@ from campusflow.tickets import create_ticket
 class TestTicketStorage(unittest.TestCase):
     def setUp(self):
         self.storage = TicketStorage()
-        self.ticket = create_ticket("T001", "Wi-Fi is down", "Network", "high", 15
+        self.ticket = create_ticket(
+            "T001", "Wi-Fi is down", "Network", "high", 15
         )
 
     def test_add_ticket(self):
@@ -34,7 +35,8 @@ class TestTicketStorage(unittest.TestCase):
 
     def test_get_all_tickets(self):
         self.storage.add_ticket(self.ticket)
-        second_ticket = create_ticket("T002", "Printer is broken", "Hardware", "medium", 4
+        second_ticket = create_ticket(
+            "T002", "Printer is broken", "Hardware", "medium", 4
         )
         self.storage.add_ticket(second_ticket)
 
@@ -47,10 +49,11 @@ class TestTicketStorage(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.storage.add_ticket(self.ticket)
+
     def test_update_status_to_in_progress(self):
         self.storage.add_ticket(self.ticket)
-
         self.storage.assign_ticket("T001", "Ada")
+
         result = self.storage.update_status("T001", "in_progress")
 
         self.assertEqual(result["status"], "in_progress")
@@ -103,7 +106,6 @@ class TestTicketStorage(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.storage.update_status("T001", "pending")
 
-
     def test_cannot_reassign_resolved_ticket(self):
         self.storage.add_ticket(self.ticket)
         self.storage.assign_ticket("T001", "Ada")
@@ -132,6 +134,40 @@ class TestTicketStorage(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.storage.assign_ticket("T001", "   ")
+
+    # New tests for title search
+
+    def test_filter_tickets_by_title(self):
+        ticket = self.storage.add_ticket({
+            "id": "T001",
+            "title": "Campus Wi-Fi down",
+            "category": "Network",
+            "urgency": "high",
+            "affected_users": 15,
+            "priority": "critical",
+            "status": "open",
+            "assigned_to": None,
+        })
+
+        result = self.storage.filter_tickets(title="Wi-Fi")
+
+        self.assertEqual(result, [ticket])
+
+    def test_filter_tickets_by_title_is_case_insensitive(self):
+        ticket = self.storage.add_ticket({
+            "id": "T001",
+            "title": "Campus Wi-Fi down",
+            "category": "Network",
+            "urgency": "high",
+            "affected_users": 15,
+            "priority": "critical",
+            "status": "open",
+            "assigned_to": None,
+        })
+
+        result = self.storage.filter_tickets(title="WI-FI")
+
+        self.assertEqual(result, [ticket])
 
     def test_filter_tickets_by_status(self):
         ticket = self.storage.add_ticket({
@@ -239,11 +275,11 @@ class TestTicketStorage(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "tickets.json"
             storage = TicketStorage(path)
-            ticket = create_ticket("T001", "Wi-Fi is down", "Network", "high", 15
+            ticket = create_ticket(
+                "T001", "Wi-Fi is down", "Network", "high", 15
             )
 
             storage.add_ticket(ticket)
-
             reloaded_storage = TicketStorage(path)
 
             self.assertEqual(reloaded_storage.get_ticket("T001"), ticket)
@@ -264,10 +300,7 @@ class TestTicketStorage(unittest.TestCase):
             )
             del ticket["status"]
 
-            path.write_text(
-                json.dumps([ticket]),
-                encoding="utf-8",
-            )
+            path.write_text(json.dumps([ticket]), encoding="utf-8")
 
             with self.assertRaisesRegex(ValueError, "Invalid ticket data"):
                 TicketStorage(path)
@@ -280,10 +313,7 @@ class TestTicketStorage(unittest.TestCase):
             )
             ticket["status"] = "flying"
 
-            path.write_text(
-                json.dumps([ticket]),
-                encoding="utf-8",
-            )
+            path.write_text(json.dumps([ticket]), encoding="utf-8")
 
             with self.assertRaisesRegex(ValueError, "Invalid ticket data"):
                 TicketStorage(path)
@@ -291,25 +321,24 @@ class TestTicketStorage(unittest.TestCase):
     def test_duplicate_ids_in_json_are_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "tickets.json"
-            ticket = create_ticket("T001", "Wi-Fi is down", "Network", "high", 15
+            ticket = create_ticket(
+                "T001", "Wi-Fi is down", "Network", "high", 15
             )
             path.write_text(
                 json.dumps([ticket, ticket]),
                 encoding="utf-8",
             )
 
-            with self.assertRaisesRegex(
-                ValueError, "Duplicate ticket ID"
-            ):
+            with self.assertRaisesRegex(ValueError, "Duplicate ticket ID"):
                 TicketStorage(path)
-
 
     def test_assignment_persists_after_reloading_storage(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "tickets.json"
             storage = TicketStorage(path)
 
-            ticket = create_ticket("T001", "Wi-Fi is down", "Network", "high", 15
+            ticket = create_ticket(
+                "T001", "Wi-Fi is down", "Network", "high", 15
             )
             storage.add_ticket(ticket)
             storage.assign_ticket("T001", "Faith")
@@ -320,7 +349,6 @@ class TestTicketStorage(unittest.TestCase):
                 reloaded_storage.get_ticket("T001")["assigned_to"],
                 "Faith",
             )
-
 
     def test_failed_save_preserves_original_json(self):
         with tempfile.TemporaryDirectory() as folder:
