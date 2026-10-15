@@ -208,3 +208,103 @@ I also learned more about Git collaboration. A merge conflict does not mean choo
 **Reflection:** AI helped me understand the requirements and work through problems, but I verified the work by reading the code, running the tests, checking Git changes, correcting mistakes, and confirming the actual results before committing and pushing them.
 
 ---
+
+> **Draft note (Engineer B):** the entries below describe events that really
+> happened in this repository. Replace the bracketed fields with your own exact
+> wording before submitting, and delete this note.
+
+## Learning Entry — Engineer B: Agreeing the `add_note` contract
+
+**Date:** 15/10/2026
+
+**Team member:** [Your full name]
+
+**Feature or task:** Integrating follow-up notes between the data layer
+(Engineer A) and the CLI (Engineer B).
+
+**Problem or question:** My `add_note` and my teammate's both "worked", but
+they returned different things: mine returned the ticket's whole notes list,
+his returned only the new note. When I merged `main` into my branch, five tests
+failed and CLI options 12 and 13 crashed, even though each half had passed its
+own tests.
+
+**What we asked AI:** I asked AI to explain how a merge can fail when both
+branches passed their own tests, and to help me list every caller of `add_note`
+before choosing one fix.
+
+**What AI suggested:** List each function's return-value contract and every
+call site, choose a single contract, and update all callers and tests together.
+It pointed out that "my tests pass" only means the tests of one branch pass.
+
+**What I verified or corrected myself:** I used `git show HEAD:...` and
+`git diff` to compare my version with my teammate's. I confirmed that
+`main.py` used `notes[-1]` and that `service.get_notes` called
+`storage.get_notes`, which did not exist. I chose the list contract, restored
+`get_notes`, and updated the callers and tests.
+
+**What I implemented:** The shared interface `add_note(...) -> list[note]` with
+`get_notes(...) -> list[note]`, the reconciliation of `storage.py` and
+`service.py`, and the updated tests in `test_notes.py`, `test_service.py`, and
+`test_storage.py`.
+
+**How I tested it:** `python3 -m unittest discover -s tests -v` reported 163
+tests OK, and I ran the same command against a fresh clone with the same result.
+
+**Actual result:** The merged project runs and the whole suite passes.
+
+**What I can explain independently:** Why a shared function contract must be
+agreed before integration, and why a passing suite on one branch does not prove
+the integrated project is correct.
+
+**What I still need to learn:** How to write a focused integration test that
+would have caught this mismatch before the merge.
+
+**Reflection:** [Explain, in your own words, what you believed before, what
+changed, and how you would prevent this next time.]
+
+## Learning Entry — Engineer B: `casefold`, punctuation, and substring search
+
+**Date:** 15/10/2026
+
+**Team member:** [Your full name]
+
+**Feature or task:** Case-insensitive title search.
+
+**Problem or question:** I wrote a search test with the title "Campus Wi-Fi
+down" and searched for "wifi". It failed. I expected case-insensitive matching
+to cover it, but "wi-fi" does not contain the characters "wifi".
+
+**What we asked AI:** I asked AI to explain the difference between `casefold`
+and `lower`, and what substring matching does and does not promise.
+
+**What AI suggested:** `casefold` is the more aggressive, Unicode-friendly
+normalization. Substring matching compares exact character sequences, so
+punctuation and spaces must match. It suggested test cases but left the
+implementation to me.
+
+**What I verified or corrected myself:** I ran a small Python experiment:
+`"wifi" in "Wi-Fi".casefold()` returned `False`, while `"wi-fi" in
+"Wi-Fi".casefold()` returned `True`. I corrected my test fixture to use
+consistent spelling and kept the matching rule as plain substring search.
+
+**What I implemented:** `campusflow/search.py` `filter_tickets` with
+case-insensitive substring matching, and `tests/test_search.py` covering case
+insensitivity and punctuation.
+
+**How I tested it:** `python3 -m unittest tests.test_search -v`, then the full
+suite (163 tests OK).
+
+**Actual result:** Search matches "WiFi", "wifi", and "WIFI" against the same
+text, and does not pretend to do fuzzy spelling correction.
+
+**What I can explain independently:** Why `casefold` is preferred for
+case-insensitive comparison and why punctuation must match in a substring
+search.
+
+**What I still need to learn:** How to decide when simple substring search is
+good enough versus when tokenization or normalization is needed.
+
+**Reflection:** [Explain, in your own words, how the failing test changed the
+way you think about "case-insensitive" matching.]
+
+---
