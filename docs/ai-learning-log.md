@@ -217,7 +217,7 @@ I also learned more about Git collaboration. A merge conflict does not mean choo
 
 **Date:** 15/10/2026
 
-**Team member:** [Your full name]
+**Team member:** Faith Ejembi
 
 **Feature or task:** Integrating follow-up notes between the data layer
 (Engineer A) and the CLI (Engineer B).
