@@ -5,6 +5,12 @@ from campusflow.service import TicketService
 from campusflow.storage import TicketStorage
 from campusflow.reports import generate_report
 from campusflow.quiz import QUESTIONS, score_answers
+from campusflow.search import (
+    VALID_CATEGORIES,
+    VALID_PRIORITIES,
+    VALID_STATUSES,
+    sort_by_priority,
+)
 
 
 DATA_FILE = Path(__file__).parent / "data" / "tickets.json"
@@ -79,52 +85,59 @@ def find_ticket(service):
     show_ticket(service.get(ticket_id))
 
 
-def search_tickets_by_title(service):
+def prompt_filter(label, valid_values):
+    """Prompt for an optional filter value, re-prompting until it is valid.
+
+    Returns the canonical value, or ``None`` when the user presses Enter.
+    Invalid options re-prompt instead of ending the search.
+    """
+    options = "/".join(valid_values)
+    prompt = f"{label} ({options}, or Enter to skip): "
+
+    while True:
+        raw = input(prompt).strip()
+
+        if not raw:
+            return None
+
+        normalized = raw.casefold()
+
+        for value in valid_values:
+            if value.casefold() == normalized:
+                return value
+
+        print(
+            f"Invalid {label.lower()}. Choose one of {options}, "
+            "or press Enter to skip."
+        )
+
+
+def collect_search(service):
+    """Read a title search plus optional filters and run the search.
+
+    Empty filters are not applied. All supplied filters must match.
+    """
     title = input("Enter title or part of title to search: ").strip()
 
-    if not title:
+    while not title:
         print("Search title cannot be empty.")
-        return
+        title = input("Enter title or part of title to search: ").strip()
 
-    category = input(
-        "Category (Network/Hardware/Software/Other, or Enter to skip): "
-    ).strip()
-
-    status = input(
-        "Status (open/in_progress/resolved/closed, or Enter to skip): "
-    ).strip().lower()
-
-    priority = input(
-        "Priority (critical/high/medium/low, or Enter to skip): "
-    ).strip().lower()
-
-    valid_categories = {"network", "hardware", "software", "other"}
-    valid_statuses = {"open", "in_progress", "resolved", "closed"}
-    valid_priorities = {"critical", "high", "medium", "low"}
-
-    if category and category.casefold() not in valid_categories:
-        print(
-            "Invalid category. Choose Network, Hardware, Software, or Other."
-        )
-        return
-
-    if status and status not in valid_statuses:
-        print(
-            "Invalid status. Choose open, in_progress, resolved, or closed."
-        )
-        return
-
-    if priority and priority not in valid_priorities:
-        print("Invalid priority. Choose critical, high, medium, or low.")
-        return
+    category = prompt_filter("Category", VALID_CATEGORIES)
+    status = prompt_filter("Status", VALID_STATUSES)
+    priority = prompt_filter("Priority", VALID_PRIORITIES)
 
     tickets = service.filter(
         title=title,
-        category=category.title() if category else None,
-        status=status or None,
-        priority=priority or None,
+        category=category,
+        status=status,
+        priority=priority,
     )
 
+    return title, tickets
+
+
+def display_search_results(tickets, title, ordered=False):
     if not tickets:
         print(
             f"No tickets found matching '{title}' "
@@ -132,7 +145,9 @@ def search_tickets_by_title(service):
         )
         return
 
-    print(f"\n--- Search Results ({len(tickets)} found) ---")
+    heading = "priority order" if ordered else "best match order"
+
+    print(f"\n--- Search Results, {heading} ({len(tickets)} found) ---")
     for ticket in tickets:
         print(
             f"{ticket['id']} | {ticket['title']} | "
@@ -140,6 +155,17 @@ def search_tickets_by_title(service):
             f"{ticket['status']} | "
             f"Assigned to: {ticket['assigned_to'] or 'Unassigned'}"
         )
+
+
+def search_tickets_by_title(service):
+    title, tickets = collect_search(service)
+    display_search_results(tickets, title)
+
+
+def search_tickets_sorted(service):
+    """Optional view: search results sorted by priority then ticket ID."""
+    title, tickets = collect_search(service)
+    display_search_results(sort_by_priority(tickets), title, ordered=True)
 
 
 def assign_ticket(service):
@@ -202,6 +228,15 @@ def show_report(service):
     for priority, count in report["by_priority"].items():
         print(f"  {priority}: {count}")
 
+    print("\nBy category:")
+    for category, count in report["by_category"].items():
+        print(f"  {category}: {count}")
+
+    print(f"\nUnresolved tickets (open + in_progress): "
+          f"{report['unresolved_count']}")
+    print(f"Resolved tickets: {report['resolved_count']}")
+    print(f"Resolution percentage: {report['resolution_percentage']:.1f}%")
+
     print(f"\nTotal affected users: {report['total_affected_users']}")
     print(
         f"Affected users on closed tickets: "
@@ -239,7 +274,7 @@ def view_ticket_notes(service):
         )
 
 
-def run_understanding_check():
+def run_understanding_check(explanation_file=None):
     answers = []
 
     print("\n=== Engineering Understanding Check ===")
@@ -275,9 +310,11 @@ def run_understanding_check():
                 break
             print("Please enter an explanation before continuing.")
 
-    explanation_file = (
-        Path(__file__).parent / "data" / "quiz_explanations.txt"
-    )
+    if explanation_file is None:
+        explanation_file = (
+            Path(__file__).parent / "data" / "quiz_explanations.txt"
+        )
+    explanation_file = Path(explanation_file)
     explanation_file.parent.mkdir(parents=True, exist_ok=True)
     with explanation_file.open("a", encoding="utf-8") as file:
         file.write("\n".join(explanations) + "\n")
@@ -306,7 +343,11 @@ def main():
         ),
         "12": ("Add note to ticket", lambda: add_ticket_note(service)),
         "13": ("View ticket notes", lambda: view_ticket_notes(service)),
-        "14": ("Engineering Understanding Check", run_understanding_check),
+        "14": (
+            "Search tickets sorted by priority",
+            lambda: search_tickets_sorted(service),
+        ),
+        "15": ("Engineering Understanding Check", run_understanding_check),
     }
 
     while True:

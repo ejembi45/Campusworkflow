@@ -4,6 +4,7 @@ import os
 import re
 from pathlib import Path
 
+from campusflow.search import filter_tickets
 from campusflow.tickets import VALID_CATEGORIES, calculate_priority
 
 
@@ -299,41 +300,14 @@ class TicketStorage:
         assigned_to=None,
         title=None,
     ):
-        tickets = self.get_all_tickets()
-
-        if title is not None:
-            search_text = title.casefold()
-            tickets = [
-                ticket
-                for ticket in tickets
-                if search_text in ticket["title"].casefold()
-            ]
-
-        if status is not None:
-            tickets = [
-                ticket for ticket in tickets
-                if ticket["status"] == status
-            ]
-
-        if priority is not None:
-            tickets = [
-                ticket for ticket in tickets
-                if ticket["priority"] == priority
-            ]
-
-        if category is not None:
-            tickets = [
-                ticket for ticket in tickets
-                if ticket["category"] == category
-            ]
-
-        if assigned_to is not None:
-            tickets = [
-                ticket for ticket in tickets
-                if ticket["assigned_to"] == assigned_to
-            ]
-
-        return tickets
+        return filter_tickets(
+            self.get_all_tickets(),
+            title=title,
+            category=category,
+            status=status,
+            priority=priority,
+            assigned_to=assigned_to,
+        )
 
     def add_note(self, ticket_id, author, message):
         ticket = self.get_ticket(ticket_id)
