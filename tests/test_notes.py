@@ -126,6 +126,21 @@ class TestTicketNotes(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.storage.add_note("T001", "Faith", "Checked the cable")
 
+    def test_note_is_accepted_after_reopen(self):
+        self.storage.assign_ticket("T001", "Faith")
+        self.storage.update_status("T001", "in_progress")
+        self.storage.update_status("T001", "resolved")
+
+        with self.assertRaises(ValueError):
+            self.storage.add_note("T001", "Faith", "Rejected while resolved")
+
+        self.storage.update_status("T001", "open")
+
+        notes = self.storage.add_note("T001", "Faith", "Added after reopen")
+
+        self.assertEqual(notes[-1]["note_id"], "N001")
+        self.assertEqual(len(self.storage.get_notes("T001")), 1)
+
     def test_ticket_without_notes_starts_with_empty_list(self):
         self.assertEqual(self.storage.get_notes("T001"), [])
 

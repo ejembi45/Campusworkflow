@@ -284,6 +284,53 @@ class TestTicketStorage(unittest.TestCase):
             ["T001", "T003"],
         )
 
+    def test_corrupt_reload_does_not_erase_existing_instance(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+            storage = TicketStorage(path)
+
+            ticket = create_ticket(
+                "T001",
+                "Wi-Fi is down",
+                "Network",
+                "high",
+                15,
+            )
+
+            storage.add_ticket(ticket)
+
+            path.write_text("{broken", encoding="utf-8")
+
+            with self.assertRaises(ValueError):
+                TicketStorage(path)
+
+            self.assertEqual(storage.get_all_tickets(), [ticket])
+
+    def test_duplicate_id_reload_does_not_erase_existing_instance(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+            storage = TicketStorage(path)
+
+            ticket = create_ticket(
+                "T001",
+                "Wi-Fi is down",
+                "Network",
+                "high",
+                15,
+            )
+
+            storage.add_ticket(ticket)
+
+            path.write_text(
+                json.dumps([ticket, ticket]),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ValueError):
+                TicketStorage(path)
+
+            self.assertEqual(storage.get_all_tickets(), [ticket])
+
     def test_ticket_persists_after_reloading_storage(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "tickets.json"
