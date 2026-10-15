@@ -21,6 +21,13 @@ class TicketService:
     def assign(self, ticket_id, staff_name):
         return self.storage.assign_ticket(ticket_id, staff_name)
 
+    def add_note(self, ticket_id, author, message):
+        return self.storage.add_note(
+            ticket_id, 
+            author,
+            message,
+        )
+
     def start(self, ticket_id):
         return self.storage.update_status(ticket_id, "in_progress")
 
@@ -36,12 +43,20 @@ class TicketService:
     def update_status(self, ticket_id, new_status):
         return self.storage.update_status(ticket_id, new_status)
 
-    def filter(self, status=None, priority=None, category=None, assigned_to=None):
+    def filter(
+        self,
+        status=None,
+        priority=None,
+        category=None,
+        assigned_to=None,
+        title=None,
+    ):
         return self.storage.filter_tickets(
             status=status,
             priority=priority,
             category=category,
             assigned_to=assigned_to,
+            title=title,
         )
 
     def get_all(self):

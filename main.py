@@ -1,4 +1,4 @@
-import json
+
 import re
 from pathlib import Path
 
@@ -48,7 +48,9 @@ def create_new_ticket(service):
     affected_users = read_integer("Number of affected users: ")
 
     tickets = service.get_all()
-    ticket_id = "T{:03d}".format(max((int(ticket["id"][1:]) for ticket in tickets), default=0) + 1)
+    ticket_id = "T{:03d}".format(
+        max((int(ticket["id"][1:]) for ticket in tickets), default=0) + 1
+    )
 
     ticket = service.create(
         ticket_id, title, category, urgency, affected_users
@@ -75,6 +77,69 @@ def list_tickets(service):
 def find_ticket(service):
     ticket_id = read_ticket_id()
     show_ticket(service.get(ticket_id))
+
+
+def search_tickets_by_title(service):
+    title = input("Enter title or part of title to search: ").strip()
+
+    if not title:
+        print("Search title cannot be empty.")
+        return
+
+    category = input(
+        "Category (Network/Hardware/Software/Other, or Enter to skip): "
+    ).strip()
+
+    status = input(
+        "Status (open/in_progress/resolved/closed, or Enter to skip): "
+    ).strip().lower()
+
+    priority = input(
+        "Priority (critical/high/medium/low, or Enter to skip): "
+    ).strip().lower()
+
+    valid_categories = {"network", "hardware", "software", "other"}
+    valid_statuses = {"open", "in_progress", "resolved", "closed"}
+    valid_priorities = {"critical", "high", "medium", "low"}
+
+    if category and category.casefold() not in valid_categories:
+        print(
+            "Invalid category. Choose Network, Hardware, Software, or Other."
+        )
+        return
+
+    if status and status not in valid_statuses:
+        print(
+            "Invalid status. Choose open, in_progress, resolved, or closed."
+        )
+        return
+
+    if priority and priority not in valid_priorities:
+        print("Invalid priority. Choose critical, high, medium, or low.")
+        return
+
+    tickets = service.filter(
+        title=title,
+        category=category.title() if category else None,
+        status=status or None,
+        priority=priority or None,
+    )
+
+    if not tickets:
+        print(
+            f"No tickets found matching '{title}' "
+            "with the supplied filters."
+        )
+        return
+
+    print(f"\n--- Search Results ({len(tickets)} found) ---")
+    for ticket in tickets:
+        print(
+            f"{ticket['id']} | {ticket['title']} | "
+            f"{ticket['category']} | {ticket['priority']} | "
+            f"{ticket['status']} | "
+            f"Assigned to: {ticket['assigned_to'] or 'Unassigned'}"
+        )
 
 
 def assign_ticket(service):
@@ -138,7 +203,10 @@ def show_report(service):
         print(f"  {priority}: {count}")
 
     print(f"\nTotal affected users: {report['total_affected_users']}")
-    print(f"Affected users on closed tickets: {report['closed_affected_users']}")
+    print(
+        f"Affected users on closed tickets: "
+        f"{report['closed_affected_users']}"
+    )
 
 
 def main():
@@ -156,6 +224,10 @@ def main():
         "8": ("Close ticket", lambda: change_status(service, "close")),
         "9": ("View unresolved queue", lambda: list_unresolved(service)),
         "10": ("Generate report", lambda: show_report(service)),
+        "11": (
+            "Search tickets by title",
+            lambda: search_tickets_by_title(service),
+        ),
     }
 
     while True:
