@@ -165,3 +165,46 @@ I checked the terminal output for the test count and final status.
 **What I still need to learn:** How to write stronger edge-case tests and use continuous integration to run the test suite automatically on pull requests.
 
 ---
+
+
+## Learning Entry — Engineer A: Follow-up Notes, Safe Storage, and Testing
+
+**Date:** 15/10/2026
+
+**Team member:** EJEMBI EDWIN
+
+**Feature or task:** CampusFlow Next — Engineer A follow-up notes, validation, JSON storage safety, and testing.
+
+**Problem or question:** I needed to implement the Engineer A requirements without breaking the existing CampusFlow application. My work included follow-up notes, note validation, safe JSON loading and saving, preserving existing ticket workflow behaviour, and making sure note IDs continue correctly after data is reloaded.
+
+**What I asked AI:** I used AI as a step-by-step guide to understand the existing code, interpret the CampusFlow Next requirements, reason about validation and mutation safety, write and review tests, understand test failures, and work through Git and merge conflicts.
+
+**What AI suggested:** AI helped me break the requirements into smaller rules. This included validating data before changing the ticket collection, validating note authors and messages, generating note IDs per ticket, preventing notes on resolved tickets, testing persistence after JSON reload, and verifying changes with the full test suite.
+
+**What I verified or corrected myself:** I ran the commands and tests myself and checked the actual results. I also checked Git status and diffs before committing changes. When code was accidentally placed in the wrong test file, I identified the changed file using `git status`, restored it, opened the correct file, and tested again before committing.
+
+**What I implemented:** I contributed the `notes` field to tickets, follow-up note creation, note validation, per-ticket note ID generation, restrictions on adding notes to resolved tickets, safe JSON validation/loading behaviour, rollback protection for failed saves, the service-layer `add_note` method, and tests for the Engineer A functionality. I also added the CampusFlow Next baseline check.
+
+**How I tested it:** I ran focused storage tests with:
+
+`python3 -m unittest tests.test_storage -v`
+
+The storage test suite reported 39 tests passing.
+
+I then ran the complete project test suite with:
+
+`python3 -m unittest discover -s tests -v`
+
+**Actual result:** The complete project reported `Ran 113 tests` followed by `OK`. The new persistence test also confirmed that notes survive a JSON reload and that the next note ID continues from `N001` to `N002`.
+
+**What I learned in my own words:** I learned that validation should happen before mutation. If invalid data changes memory before it is rejected, the application can be left in an incorrect state. I also learned that saving data safely requires thinking about both the JSON file and the in-memory data. For notes, I learned why IDs should be generated from the existing notes for that ticket and why a rejected note must not consume an ID.
+
+I also learned more about Git collaboration. A merge conflict does not mean choosing one person's entire file over another person's file. I need to understand both changes and preserve the correct parts of each contribution. During the merge, I preserved my follow-up note functionality together with my teammate's existing changes.
+
+**What I can explain independently:** I can explain why notes are allowed only on appropriate ticket statuses, how note IDs such as `N001` and `N002` are generated, why validation happens before mutation, why `type(value) is int` can be important when booleans must be rejected, how JSON data is validated before replacing the current ticket collection, why rollback is needed when saving fails, and how the tests verify these behaviours.
+
+**What I still need to learn:** I want to improve my ability to design validation and persistence code independently, write more edge-case tests without assistance, and become more confident resolving larger Git merge conflicts.
+
+**Reflection:** AI helped me understand the requirements and work through problems, but I verified the work by reading the code, running the tests, checking Git changes, correcting mistakes, and confirming the actual results before committing and pushing them.
+
+---
