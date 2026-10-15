@@ -1,4 +1,3 @@
-
 import unittest
 
 from campusflow.reports import generate_report
@@ -114,7 +113,10 @@ class TestAssignTicket(unittest.TestCase):
 
         result = get_unresolved_tickets(tickets)
 
-        self.assertEqual([t["id"] for t in result], ["T001", "T003", "T002"])
+        self.assertEqual(
+            [ticket["id"] for ticket in result],
+            ["T001", "T003", "T002"],
+        )
         self.assertEqual(len(tickets), 4)
 
     def test_generate_empty_report(self):
@@ -150,10 +152,57 @@ class TestAssignTicket(unittest.TestCase):
             {"critical": 1, "high": 1, "medium": 0, "low": 0},
         )
 
+    def test_report_counts_categories(self):
+        hardware_ticket = {**self.ticket, "category": "Hardware"}
+        software_ticket = {
+            **self.ticket,
+            "id": "T002",
+            "category": "Software",
+        }
+
+        report = generate_report([hardware_ticket, software_ticket])
+
+        self.assertEqual(
+            report["by_category"],
+            {"Network": 0, "Hardware": 1, "Software": 1, "Other": 0},
+        )
+
+    def test_report_counts_resolved_and_unresolved_tickets(self):
+        open_ticket = {**self.ticket, "status": "open"}
+        in_progress_ticket = {
+            **self.ticket,
+            "id": "T002",
+            "status": "in_progress",
+        }
+        resolved_ticket = {
+            **self.ticket,
+            "id": "T003",
+            "status": "resolved",
+        }
+
+        report = generate_report(
+            [open_ticket, in_progress_ticket, resolved_ticket]
+        )
+
+        self.assertEqual(report["unresolved_count"], 2)
+        self.assertEqual(report["resolved_count"], 1)
+
+    def test_report_resolution_percentage(self):
+        resolved_ticket = {
+            **self.ticket,
+            "id": "T002",
+            "status": "resolved",
+        }
+
+        report = generate_report([self.ticket, resolved_ticket])
+
+        self.assertEqual(report["resolution_percentage"], 50.0)
 
     def test_close_resolved_ticket(self):
         self.ticket["status"] = "resolved"
+
         result = close_ticket(self.ticket)
+
         self.assertEqual(result["status"], "closed")
         self.assertIs(result, self.ticket)
 
@@ -163,28 +212,41 @@ class TestAssignTicket(unittest.TestCase):
 
     def test_closed_ticket_cannot_be_reopened(self):
         self.ticket["status"] = "closed"
+
         with self.assertRaises(ValueError):
             reopen_ticket(self.ticket)
 
     def test_closed_ticket_cannot_be_reassigned(self):
         self.ticket["status"] = "closed"
+
         with self.assertRaises(ValueError):
             assign_ticket(self.ticket, "Faith")
 
     def test_closed_ticket_excluded_from_unresolved_queue(self):
-        closed_ticket = {**self.ticket, "id": "T002", "status": "closed"}
+        closed_ticket = {
+            **self.ticket,
+            "id": "T002",
+            "status": "closed",
+        }
+
         result = get_unresolved_tickets([self.ticket, closed_ticket])
+
         self.assertEqual([ticket["id"] for ticket in result], ["T001"])
 
     def test_report_counts_closed_tickets(self):
-        closed_ticket = {**self.ticket, "id": "T002", "status": "closed"}
+        closed_ticket = {
+            **self.ticket,
+            "id": "T002",
+            "status": "closed",
+        }
+
         report = generate_report([self.ticket, closed_ticket])
+
         self.assertEqual(report["total"], 2)
         self.assertEqual(
             report["by_status"],
             {"open": 1, "in_progress": 0, "resolved": 0, "closed": 1},
         )
-
 
     def test_report_counts_affected_users_across_all_tickets(self):
         ticket1 = {**self.ticket, "affected_users": 15}
@@ -226,16 +288,19 @@ class TestAssignTicket(unittest.TestCase):
 
     def test_reject_start_ticket_with_whitespace_assignee(self):
         self.ticket["assigned_to"] = " "
+
         with self.assertRaises(ValueError):
             start_ticket(self.ticket)
 
     def test_reject_start_ticket_with_non_string_assignee(self):
         self.ticket["assigned_to"] = 123
+
         with self.assertRaises(ValueError):
             start_ticket(self.ticket)
 
     def test_reject_assignment_to_closed_ticket(self):
         self.ticket["status"] = "closed"
+
         with self.assertRaisesRegex(ValueError, "Reopen the ticket"):
             assign_ticket(self.ticket, "Faith")
 
@@ -246,4 +311,3 @@ class TestAssignTicket(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

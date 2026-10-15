@@ -59,10 +59,12 @@ class TestTicketService(unittest.TestCase):
     def test_update_ticket_status(self):
         self.create_ticket()
         self.service.assign("T001", "Ada")
+
         ticket = self.service.update_status(
             "T001",
             "in_progress",
         )
+
         self.assertEqual(ticket["status"], "in_progress")
 
     def test_filter_tickets(self):
@@ -84,6 +86,24 @@ class TestTicketService(unittest.TestCase):
         self.assertEqual(
             [ticket["id"] for ticket in tickets],
             ["T002"],
+        )
+
+    def test_filter_tickets_by_title(self):
+        self.create_ticket()
+
+        self.service.create(
+            "T002",
+            "Printer is broken",
+            "Hardware",
+            "low",
+            1,
+        )
+
+        tickets = self.service.filter(title="Wi-Fi")
+
+        self.assertEqual(
+            [ticket["id"] for ticket in tickets],
+            ["T001"],
         )
 
     def test_start_ticket(self):

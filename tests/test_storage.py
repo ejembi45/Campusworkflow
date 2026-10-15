@@ -63,8 +63,8 @@ class TestTicketStorage(unittest.TestCase):
 
     def test_update_status_to_in_progress(self):
         self.storage.add_ticket(self.ticket)
-
         self.storage.assign_ticket("T001", "Ada")
+
         result = self.storage.update_status("T001", "in_progress")
 
         self.assertEqual(result["status"], "in_progress")
@@ -147,6 +147,40 @@ class TestTicketStorage(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.storage.assign_ticket("T001", "   ")
+
+    # New tests for title search
+
+    def test_filter_tickets_by_title(self):
+        ticket = self.storage.add_ticket({
+            "id": "T001",
+            "title": "Campus Wi-Fi down",
+            "category": "Network",
+            "urgency": "high",
+            "affected_users": 15,
+            "priority": "critical",
+            "status": "open",
+            "assigned_to": None,
+        })
+
+        result = self.storage.filter_tickets(title="Wi-Fi")
+
+        self.assertEqual(result, [ticket])
+
+    def test_filter_tickets_by_title_is_case_insensitive(self):
+        ticket = self.storage.add_ticket({
+            "id": "T001",
+            "title": "Campus Wi-Fi down",
+            "category": "Network",
+            "urgency": "high",
+            "affected_users": 15,
+            "priority": "critical",
+            "status": "open",
+            "assigned_to": None,
+        })
+
+        result = self.storage.filter_tickets(title="WI-FI")
+
+        self.assertEqual(result, [ticket])
 
     def test_filter_tickets_by_status(self):
         ticket = self.storage.add_ticket({
@@ -264,7 +298,6 @@ class TestTicketStorage(unittest.TestCase):
             )
 
             storage.add_ticket(ticket)
-
             reloaded_storage = TicketStorage(path)
 
             self.assertEqual(
@@ -294,10 +327,7 @@ class TestTicketStorage(unittest.TestCase):
 
             del ticket["status"]
 
-            path.write_text(
-                json.dumps([ticket]),
-                encoding="utf-8",
-            )
+            path.write_text(json.dumps([ticket]), encoding="utf-8")
 
             with self.assertRaisesRegex(
                 ValueError,
@@ -319,10 +349,7 @@ class TestTicketStorage(unittest.TestCase):
 
             ticket["status"] = "flying"
 
-            path.write_text(
-                json.dumps([ticket]),
-                encoding="utf-8",
-            )
+            path.write_text(json.dumps([ticket]), encoding="utf-8")
 
             with self.assertRaisesRegex(
                 ValueError,
