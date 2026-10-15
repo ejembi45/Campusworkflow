@@ -621,6 +621,41 @@ class TestTicketStorage(unittest.TestCase):
 
         self.assertEqual(note["note_id"], "N001")
 
+    def test_notes_persist_and_next_id_continues_after_reload(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+            storage = TicketStorage(path)
+
+            ticket = create_ticket(
+                "T001",
+                "Wi-Fi is down",
+                "Network",
+                "high",
+                15,
+            )
+
+            storage.add_ticket(ticket)
+
+            storage.add_note(
+                "T001",
+                "Edwin",
+                "First network update",
+            )
+
+            reloaded_storage = TicketStorage(path)
+
+            second_note = reloaded_storage.add_note(
+                "T001",
+                "Ada",
+                "Second network update",
+            )
+
+            notes = reloaded_storage.get_ticket("T001")["notes"]
+
+            self.assertEqual(len(notes), 2)
+            self.assertEqual(notes[0]["note_id"], "N001")
+            self.assertEqual(second_note["note_id"], "N002")    
+
         
 if __name__ == "__main__":
     unittest.main()
