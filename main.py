@@ -1,10 +1,10 @@
-
 import re
 from pathlib import Path
 
 from campusflow.service import TicketService
 from campusflow.storage import TicketStorage
 from campusflow.reports import generate_report
+from campusflow.quiz import QUESTIONS, score_answers
 
 
 DATA_FILE = Path(__file__).parent / "data" / "tickets.json"
@@ -45,7 +45,7 @@ def create_new_ticket(service):
     title = input("Problem title: ").strip()
     category = input("Category: ").strip()
     urgency = input("Urgency (high/medium/low): ").strip().lower()
-    affected_users = read_integer("Number of affected users: ")
+    affected_users = read_integer("Number of affected users: ", minimum=1)
 
     tickets = service.get_all()
     ticket_id = "T{:03d}".format(
@@ -164,7 +164,7 @@ def change_status(service, action):
 def list_unresolved(service):
     tickets = [
         ticket for ticket in service.get_all()
-        if ticket["status"] not in ("resolved", "closed")
+        if ticket["status"] == "open"
     ]
 
     tickets.sort(
@@ -177,10 +177,10 @@ def list_unresolved(service):
     )
 
     if not tickets:
-        print("\nThere are no unresolved tickets.")
+        print("\nThere are no open tickets.")
         return
 
-    print("\n--- Unresolved Tickets (highest priority first) ---")
+    print("\n--- Open Work Queue (highest priority first) ---")
     for ticket in tickets:
         print(
             f"{ticket['id']} | {ticket['priority']} | "
@@ -209,6 +209,82 @@ def show_report(service):
     )
 
 
+def add_ticket_note(service):
+    ticket_id = read_ticket_id()
+    service.get(ticket_id)
+
+    author = input("Enter your name: ").strip()
+    message = input("Enter note (5–300 characters): ").strip()
+
+    notes = service.add_note(ticket_id, author, message)
+    print(f"Note added to ticket {ticket_id}.")
+
+    if notes:
+        note = notes[-1]
+        print(f"{note['note_id']} | {note['author']}: {note['message']}")
+
+
+def view_ticket_notes(service):
+    ticket_id = read_ticket_id()
+    notes = service.get_notes(ticket_id)
+
+    if not notes:
+        print(f"No notes found for ticket {ticket_id}.")
+        return
+
+    print(f"\n--- Notes for {ticket_id} ---")
+    for note in notes:
+        print(
+            f"{note['note_id']} | {note['author']}: {note['message']}"
+        )
+
+
+def run_understanding_check():
+    answers = []
+
+    print("\n=== Engineering Understanding Check ===")
+    for number, question in enumerate(QUESTIONS, start=1):
+        print(f"\n{number}. {question['question']}")
+        for letter, option in question["options"].items():
+            print(f"  {letter}. {option}")
+
+        answer = input("Your answer (A/B/C/D): ").strip().upper()
+        while answer not in ("A", "B", "C", "D"):
+            print("Invalid answer. Enter A, B, C, or D.")
+            answer = input("Your answer (A/B/C/D): ").strip().upper()
+
+        answers.append(answer)
+
+    score = score_answers(answers)
+    print(f"\nYour score: {score}/6")
+
+    explanations = []
+    for index in range(2):
+        question_number = index + 1
+        while True:
+            explanation = input(
+                f"Explain your reasoning for question {question_number}: "
+            ).strip()
+            if explanation:
+                explanations.append(
+                    f"Question {question_number}: "
+                    f"{QUESTIONS[index]['question']}\n"
+                    f"Answer selected: {answers[index]}\n"
+                    f"Explanation: {explanation}\n"
+                )
+                break
+            print("Please enter an explanation before continuing.")
+
+    explanation_file = (
+        Path(__file__).parent / "data" / "quiz_explanations.txt"
+    )
+    explanation_file.parent.mkdir(parents=True, exist_ok=True)
+    with explanation_file.open("a", encoding="utf-8") as file:
+        file.write("\n".join(explanations) + "\n")
+
+    print(f"Explanations saved to {explanation_file}.")
+
+
 def main():
     storage = TicketStorage(DATA_FILE)
     service = TicketService(storage)
@@ -222,12 +298,15 @@ def main():
         "6": ("Resolve ticket", lambda: change_status(service, "resolve")),
         "7": ("Reopen ticket", lambda: change_status(service, "reopen")),
         "8": ("Close ticket", lambda: change_status(service, "close")),
-        "9": ("View unresolved queue", lambda: list_unresolved(service)),
+        "9": ("View open work queue", lambda: list_unresolved(service)),
         "10": ("Generate report", lambda: show_report(service)),
         "11": (
             "Search tickets by title",
             lambda: search_tickets_by_title(service),
         ),
+        "12": ("Add note to ticket", lambda: add_ticket_note(service)),
+        "13": ("View ticket notes", lambda: view_ticket_notes(service)),
+        "14": ("Engineering Understanding Check", run_understanding_check),
     }
 
     while True:

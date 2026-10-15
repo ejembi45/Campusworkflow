@@ -34,6 +34,8 @@ class TicketStorage:
             "status",
             "assigned_to",
         }
+        valid_statuses = ("open", "in_progress", "resolved", "closed")
+        loaded_tickets = {}
 
         for ticket in saved_tickets:
             if (
@@ -42,12 +44,7 @@ class TicketStorage:
             ):
                 raise ValueError("Invalid ticket data in JSON storage")
 
-            if ticket["status"] not in (
-                "open",
-                "in_progress",
-                "resolved",
-                "closed",
-            ):
+            if ticket["status"] not in valid_statuses:
                 raise ValueError("Invalid ticket data in JSON storage")
 
             ticket_id = ticket["id"]
@@ -58,12 +55,57 @@ class TicketStorage:
             ):
                 raise ValueError("Ticket ID must use the format T001")
 
-            if ticket_id in self.tickets:
+            if ticket_id in loaded_tickets:
                 raise ValueError(
                     f"Duplicate ticket ID in JSON storage: {ticket_id}"
                 )
 
-            self.tickets[ticket_id] = ticket
+            if (
+                not isinstance(ticket["title"], str)
+                or not ticket["title"].strip()
+                or ticket["category"] not in (
+                    "Network", "Hardware", "Software", "Other"
+                )
+                or ticket["urgency"] not in ("low", "medium", "high")
+                or type(ticket["affected_users"]) is not int
+                or ticket["affected_users"] <= 0
+                or (
+                    ticket["assigned_to"] is not None
+                    and (
+                        not isinstance(ticket["assigned_to"], str)
+                        or not ticket["assigned_to"].strip()
+                    )
+                )
+            ):
+                raise ValueError("Invalid ticket data in JSON storage")
+
+            ticket.setdefault("notes", [])
+
+            if not isinstance(ticket["notes"], list):
+                raise ValueError("Ticket notes must be a list")
+
+            seen_note_ids = set()
+
+            for note in ticket["notes"]:
+                if (
+                    not isinstance(note, dict)
+                    or set(note) != {"note_id", "author", "message"}
+                    or not isinstance(note["note_id"], str)
+                    or not re.fullmatch(r"N\d{3,}", note["note_id"])
+                    or not isinstance(note["author"], str)
+                    or not note["author"].strip()
+                    or not isinstance(note["message"], str)
+                    or not 5 <= len(note["message"].strip()) <= 300
+                    or note["note_id"] in seen_note_ids
+                ):
+                    raise ValueError("Invalid ticket note in JSON storage")
+
+                seen_note_ids.add(note["note_id"])
+
+            loaded_tickets[ticket_id] = ticket
+
+        # Replace the current collection only after every ticket is validated.
+        self.tickets = loaded_tickets
 
     def _save(self):
         if self.file_path is None:
@@ -94,7 +136,13 @@ class TicketStorage:
         if ticket_id in self.tickets:
             raise ValueError("Ticket ID already exists")
 
+        ticket.setdefault("notes", [])
+
+        if not isinstance(ticket["notes"], list):
+            raise ValueError("Ticket notes must be a list")
+
         self.tickets[ticket_id] = ticket
+
         try:
             self._save()
         except Exception:
@@ -141,6 +189,7 @@ class TicketStorage:
             )
 
         ticket["status"] = new_status
+
         try:
             self._save()
         except Exception:
@@ -163,6 +212,7 @@ class TicketStorage:
 
         previous_assignee = ticket["assigned_to"]
         ticket["assigned_to"] = staff_name.strip()
+
         try:
             self._save()
         except Exception:
@@ -170,6 +220,76 @@ class TicketStorage:
             raise
 
         return ticket
+
+    def add_note(self, ticket_id, author, message):
+        ticket = self.get_ticket(ticket_id)
+
+        if ticket is None:
+            raise ValueError("Ticket not found")
+
+        if ticket["status"] not in ("open", "in_progress"):
+            raise ValueError(
+                "Notes can only be added to open or in-progress tickets"
+            )
+
+        if not isinstance(author, str) or not author.strip():
+            raise ValueError("Author must be a non-empty string")
+
+        if not isinstance(message, str):
+            raise ValueError("Note message must be a string")
+
+        author = author.strip()
+        message = message.strip()
+
+        if not 5 <= len(message) <= 300:
+            raise ValueError(
+                "Note message must contain between 5 and 300 characters"
+            )
+
+        notes = ticket.setdefault("notes", [])
+        existing_numbers = []
+
+        for note in notes:
+            if not isinstance(note, dict):
+                raise ValueError("Invalid existing ticket note")
+
+            note_id = note.get("note_id", "")
+
+            if not isinstance(note_id, str):
+                raise ValueError("Invalid existing note ID")
+
+            match = re.fullmatch(r"N(\d{3,})", note_id)
+
+            if match is None:
+                raise ValueError("Invalid existing note ID")
+
+            existing_numbers.append(int(match.group(1)))
+
+        next_number = max(existing_numbers, default=0) + 1
+
+        new_note = {
+            "note_id": f"N{next_number:03d}",
+            "author": author,
+            "message": message,
+        }
+
+        notes.append(new_note)
+
+        try:
+            self._save()
+        except Exception:
+            notes.pop()
+            raise
+
+        return list(notes)
+
+    def get_notes(self, ticket_id):
+        ticket = self.get_ticket(ticket_id)
+
+        if ticket is None:
+            raise ValueError("Ticket not found")
+
+        return list(ticket.get("notes", []))
 
     def filter_tickets(
         self,

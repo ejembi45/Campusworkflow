@@ -52,5 +52,11 @@ class TicketService:
             title=title,
         )
 
+    def add_note(self, ticket_id, author, message):
+        return self.storage.add_note(ticket_id, author, message)
+
+    def get_notes(self, ticket_id):
+        return self.storage.get_notes(ticket_id)
+
     def get_all(self):
         return self.storage.get_all_tickets()
