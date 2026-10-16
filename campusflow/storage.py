@@ -41,13 +41,21 @@ class TicketStorage:
             "notes",
         }
 
-        for ticket in saved_tickets:
-            if (
-                not isinstance(ticket, dict)
-                or not required_fields.issubset(ticket)
-            ):
+        for saved_ticket in saved_tickets:
+            if not isinstance(saved_ticket, dict):
                 raise ValueError("Invalid ticket data in JSON storage")
 
+            # Copy the record so validation does not mutate the
+            # original dictionary loaded from the JSON list.
+            ticket = dict(saved_ticket)
+
+            # Older tickets may not have notes yet.
+            ticket.setdefault("notes", [])
+
+            if not required_fields.issubset(ticket):
+                raise ValueError("Invalid ticket data in JSON storage")
+
+            # Read the ID before using it in validation.
             ticket_id = ticket["id"]
 
             # Validate ticket ID.
@@ -75,11 +83,7 @@ class TicketStorage:
                 raise ValueError("Invalid ticket data in JSON storage")
 
             # Validate urgency.
-            if ticket["urgency"] not in (
-                "low",
-                "medium",
-                "high",
-            ):
+            if ticket["urgency"] not in ("low", "medium", "high"):
                 raise ValueError("Invalid ticket data in JSON storage")
 
             # Validate affected users.
@@ -90,8 +94,7 @@ class TicketStorage:
             ):
                 raise ValueError("Invalid ticket data in JSON storage")
 
-            # Validate that the stored priority still matches
-            # the application's priority rule.
+            # Validate that priority matches the application's rule.
             expected_priority = calculate_priority(
                 ticket["urgency"],
                 ticket["affected_users"],
@@ -123,17 +126,13 @@ class TicketStorage:
             notes = ticket["notes"]
 
             if not isinstance(notes, list):
-                raise ValueError(
-                    "Invalid ticket data in JSON storage"
-                )
+                raise ValueError("Invalid ticket data in JSON storage")
 
             seen_note_ids = set()
 
             for note in notes:
                 if not isinstance(note, dict):
-                    raise ValueError(
-                        "Invalid note data in JSON storage"
-                    )
+                    raise ValueError("Invalid note data in JSON storage")
 
                 required_note_fields = {
                     "note_id",
@@ -142,9 +141,7 @@ class TicketStorage:
                 }
 
                 if not required_note_fields.issubset(note):
-                    raise ValueError(
-                        "Invalid note data in JSON storage"
-                    )
+                    raise ValueError("Invalid note data in JSON storage")
 
                 note_id = note["note_id"]
 
@@ -152,9 +149,7 @@ class TicketStorage:
                     not isinstance(note_id, str)
                     or not re.fullmatch(r"N\d{3,}", note_id)
                 ):
-                    raise ValueError(
-                        "Invalid note data in JSON storage"
-                    )
+                    raise ValueError("Invalid note data in JSON storage")
 
                 if note_id in seen_note_ids:
                     raise ValueError(
@@ -168,26 +163,19 @@ class TicketStorage:
                     not isinstance(note["author"], str)
                     or not note["author"].strip()
                 ):
-                    raise ValueError(
-                        "Invalid note data in JSON storage"
-                    )
+                    raise ValueError("Invalid note data in JSON storage")
 
                 if not isinstance(note["message"], str):
-                    raise ValueError(
-                        "Invalid note data in JSON storage"
-                    )
+                    raise ValueError("Invalid note data in JSON storage")
 
                 message = note["message"].strip()
 
                 if len(message) < 5 or len(message) > 300:
-                    raise ValueError(
-                        "Invalid note data in JSON storage"
-                    )
+                    raise ValueError("Invalid note data in JSON storage")
 
             validated_tickets[ticket_id] = ticket
 
-        # Only replace current memory after every ticket
-        # in the JSON file has passed validation.
+        # Replace current memory only after every ticket is valid.
         self.tickets = validated_tickets
 
     def _save(self):
@@ -204,10 +192,7 @@ class TicketStorage:
         )
 
         try:
-            with temp_path.open(
-                "w",
-                encoding="utf-8",
-            ) as file:
+            with temp_path.open("w", encoding="utf-8") as file:
                 json.dump(
                     list(self.tickets.values()),
                     file,
@@ -301,10 +286,7 @@ class TicketStorage:
         if ticket is None:
             raise ValueError("Ticket not found")
 
-        if ticket["status"] in (
-            "resolved",
-            "closed",
-        ):
+        if ticket["status"] in ("resolved", "closed"):
             raise ValueError(
                 "Reopen the ticket before assigning it"
             )
@@ -318,7 +300,6 @@ class TicketStorage:
             )
 
         old_assigned_to = ticket["assigned_to"]
-
         ticket["assigned_to"] = staff_name.strip()
 
         try:
@@ -339,8 +320,6 @@ class TicketStorage:
     ):
         tickets = self.get_all_tickets()
 
-        # This title-search functionality came from the
-        # newer main branch and is preserved in the merge.
         if title is not None:
             search_text = title.casefold()
             tickets = [
@@ -385,17 +364,12 @@ class TicketStorage:
         if ticket is None:
             raise ValueError("Ticket not found")
 
-        # Notes are only allowed on active tickets.
-        if ticket["status"] not in (
-            "open",
-            "in_progress",
-        ):
+        if ticket["status"] not in ("open", "in_progress"):
             raise ValueError(
                 "Notes can only be added to "
                 "open or in_progress tickets"
             )
 
-        # Validate author before changing the ticket.
         if (
             not isinstance(author, str)
             or not author.strip()
@@ -404,7 +378,6 @@ class TicketStorage:
                 "Author must be a non-empty string"
             )
 
-        # Validate message before changing the ticket.
         if not isinstance(message, str):
             raise ValueError("Message must be a string")
 
@@ -424,11 +397,9 @@ class TicketStorage:
 
         for note in notes:
             number = int(note["note_id"][1:])
-
             if number > highest_number:
                 highest_number = number
 
-        # Generate the next note ID.
         note_id = f"N{highest_number + 1:03d}"
 
         note = {
@@ -442,9 +413,7 @@ class TicketStorage:
 
         try:
             self._save()
-
         except Exception:
-            # Roll back the mutation if saving fails.
             notes.remove(note)
 
             if not had_notes_field:
