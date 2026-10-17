@@ -59,7 +59,7 @@ def create_new_ticket(service):
     title = input("Problem title: ").strip()
     category = input("Category: ").strip()
     urgency = input("Urgency (high/medium/low): ").strip().lower()
-    affected_users = read_integer("Number of affected users: ")
+    affected_users = read_integer("Number of affected users: ", minimum=1)
 
     tickets = service.get_all()
     ticket_id = "T{:03d}".format(
@@ -94,7 +94,7 @@ def find_ticket(service):
 
 
 def read_search_title():
-    """Read the title search text. Returns None when the user cancels."""
+    """Read search text. Return None when the user cancels."""
     while True:
         title = input("Search title or part of title (0 to cancel): ").strip()
 
@@ -108,10 +108,7 @@ def read_search_title():
 
 
 def read_filter_option(prompt, valid_values, label):
-    """Read an optional filter, re-prompting until the value is valid.
-
-    An empty answer means "do not filter by this field" and returns None.
-    """
+    """Read an optional filter; an empty answer means no filter."""
     while True:
         value = input(prompt).strip()
 
@@ -129,7 +126,7 @@ def read_filter_option(prompt, valid_values, label):
 
 
 def print_search_results(tickets, heading):
-    """Display search results without changing any ticket record."""
+    """Display search results without changing ticket records."""
     if not tickets:
         print("\nNo tickets matched the supplied search and filters.")
         return
@@ -146,12 +143,7 @@ def print_search_results(tickets, heading):
 
 
 def search_tickets_by_title(service, sort_by_priority=False):
-    """Read-only search view with optional category, status and priority filters.
-
-    Filters are combined with logical AND. With ``sort_by_priority`` the
-    results are ordered by priority and then numeric ticket ID; the original
-    Open Work Queue is a separate view and is never replaced by this one.
-    """
+    """Search tickets with optional category, status and priority filters."""
     title = read_search_title()
 
     if title is None:
@@ -185,17 +177,15 @@ def search_tickets_by_title(service, sort_by_priority=False):
     )
 
     if sort_by_priority:
-        print_search_results(
-            sort_by_priority_then_id(tickets),
-            "Search Results (priority order)",
-        )
+        tickets = sort_by_priority_then_id(tickets)
+        print_search_results(tickets, "Search Results (priority order)")
         return
 
     print_search_results(tickets, "Search Results")
 
 
 def read_required_text(prompt, message):
-    """Read text that must not be blank, re-prompting until it is supplied."""
+    """Read text that must not be blank."""
     while True:
         value = input(prompt).strip()
 
@@ -206,7 +196,7 @@ def read_required_text(prompt, message):
 
 
 def read_note_message():
-    """Read a follow-up note message of 5 to 300 characters after trimming."""
+    """Read a note message between 5 and 300 characters."""
     while True:
         message = input("Note message (5-300 characters): ").strip()
 
@@ -217,7 +207,7 @@ def read_note_message():
 
 
 def add_follow_up_note(service):
-    """CLI for Engineer A's add_note service operation."""
+    """Add a follow-up note through the TicketService."""
     ticket_id = read_ticket_id()
     ticket = service.get(ticket_id)
 
@@ -235,11 +225,14 @@ def add_follow_up_note(service):
         print(f"Note was not added: {error}")
         return
 
-    print(f"\nNote {note['note_id']} added to {ticket_id} by {note['author']}.")
+    print(
+        f"\nNote {note['note_id']} added to "
+        f"{ticket_id} by {note['author']}."
+    )
 
 
 def view_ticket_notes(service):
-    """Display every follow-up note for one ticket in note ID order."""
+    """Display a ticket's notes in note ID order."""
     ticket_id = read_ticket_id()
     ticket = service.get(ticket_id)
     notes = sort_notes_by_id(ticket.get("notes", []))
@@ -255,7 +248,7 @@ def view_ticket_notes(service):
 
 
 def read_answer_letter(question_id):
-    """Read an A/B/C/D answer, re-prompting when the choice is invalid."""
+    """Read a valid answer letter, prompting again for invalid input."""
     while True:
         answer = input(
             f"Your answer for {question_id} (A/B/C/D): "
@@ -267,15 +260,17 @@ def read_answer_letter(question_id):
         print("Invalid choice. Please answer with A, B, C or D.")
 
 
-def collect_explanations(question_ids):
-    """Ask for a short explanation of at least EXPLANATION_MINIMUM answers.
+def collect_explanations(questions, answers):
+    """Collect and save explanations without grading their wording."""
+    question_ids = [question["id"] for question in questions]
+    question_by_id = {
+        question["id"]: question for question in questions
+    }
+    answer_by_id = dict(zip(question_ids, answers))
 
-    Explanations are for mentor discussion only. They are never compared with
-    keywords and never change the score.
-    """
     print(
         f"\nExplain at least {EXPLANATION_MINIMUM} of your answers. "
-        "The explanations are not auto-graded."
+        "The explanations are for mentor discussion and are not auto-graded."
     )
 
     while True:
@@ -300,6 +295,8 @@ def collect_explanations(question_ids):
             f"from: {', '.join(question_ids)}"
         )
 
+    explanations = []
+
     for question_id in chosen:
         while True:
             explanation = input(
@@ -311,24 +308,41 @@ def collect_explanations(question_ids):
 
             print("A short explanation is required for this check.")
 
-    print("\nExplanations collected for mentor discussion (not saved or auto-graded).")
+        question = question_by_id[question_id]
+        explanations.append(
+            f"Question: {question_id}\n"
+            f"Scenario: {question['scenario']}\n"
+            f"Answer selected: {answer_by_id[question_id]}\n"
+            f"Explanation: {explanation}\n"
+            f"{'-' * 40}\n"
+        )
+
+    explanation_file = (
+        Path(__file__).parent / "data" / "quiz_explanations.txt"
+    )
+    explanation_file.parent.mkdir(parents=True, exist_ok=True)
+
+    with explanation_file.open("a", encoding="utf-8") as file:
+        file.write("\n".join(explanations) + "\n")
+
+    print(f"\nExplanations saved to {explanation_file}.")
+    print("Explanations are saved for review and are not auto-graded.")
 
 
 def run_understanding_check():
-    """Interactive six-question understanding check."""
+    """Run the Engineering Understanding Check."""
     questions = question_bank()
-    question_ids = [question["id"] for question in questions]
 
     print("\n--- Engineering Understanding Check ---")
-    print("Six scenario questions about CampusFlow. Answer with A, B, C or D.")
+    print("Answer each scenario with A, B, C or D.")
 
     answers = []
 
     for question in questions:
         print(f"\n{question['id']}. {question['scenario']}")
 
-        for letter, text in question["options"].items():
-            print(f"   {letter}. {text}")
+        for letter, option_text in question["options"].items():
+            print(f"   {letter}. {option_text}")
 
         answers.append(read_answer_letter(question["id"]))
 
@@ -348,7 +362,7 @@ def run_understanding_check():
 
     print(f"Score: {result['score']}/{result['total']}")
 
-    collect_explanations(question_ids)
+    collect_explanations(questions, answers)
 
 
 def assign_ticket(service):
@@ -371,7 +385,7 @@ def change_status(service, action):
 
 
 def list_unresolved(service):
-    """Display only open tickets, sorted by priority and numeric ID."""
+    """Display open tickets, sorted by priority and numeric ID."""
     tickets = [
         ticket for ticket in service.get_all()
         if ticket["status"] == "open"
@@ -379,9 +393,12 @@ def list_unresolved(service):
 
     tickets.sort(
         key=lambda ticket: (
-            {"critical": 0, "high": 1, "medium": 2, "low": 3}[
-                ticket["priority"]
-            ],
+            {
+                "critical": 0,
+                "high": 1,
+                "medium": 2,
+                "low": 3,
+            }[ticket["priority"]],
             int(ticket["id"][1:]),
         )
     )
@@ -391,12 +408,12 @@ def list_unresolved(service):
         return
 
     print("\n--- Open Work Queue (highest priority first) ---")
+
     for ticket in tickets:
         print(
             f"{ticket['id']} | {ticket['priority']} | "
             f"{ticket['status']} | {ticket['title']}"
         )
-
 
 
 def show_report(service):
@@ -422,7 +439,10 @@ def show_report(service):
         f"{report['unresolved_count']}"
     )
     print(f"Resolved tickets: {report['resolved_count']}")
-    print(f"Resolution percentage: {report['resolution_percentage']:.1f}%")
+    print(
+        f"Resolution percentage: "
+        f"{report['resolution_percentage']:.1f}%"
+    )
 
     print(f"\nTotal affected users: {report['total_affected_users']}")
     print(
@@ -444,7 +464,7 @@ def main():
         "6": ("Resolve ticket", lambda: change_status(service, "resolve")),
         "7": ("Reopen ticket", lambda: change_status(service, "reopen")),
         "8": ("Close ticket", lambda: change_status(service, "close")),
-        "9": ("View unresolved queue", lambda: list_unresolved(service)),
+        "9": ("View open work queue", lambda: list_unresolved(service)),
         "10": ("Generate report", lambda: show_report(service)),
         "11": (
             "Search tickets by title",
@@ -464,8 +484,10 @@ def main():
 
     while True:
         print("\n========== CampusFlow ==========")
+
         for number, (label, _) in actions.items():
             print(f"{number}. {label}")
+
         print("0. Exit")
 
         choice = input("Choose an option: ").strip()
