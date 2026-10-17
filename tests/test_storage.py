@@ -1,3 +1,4 @@
+
 import json
 import tempfile
 from pathlib import Path
@@ -148,7 +149,7 @@ class TestTicketStorage(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.storage.assign_ticket("T001", "   ")
 
-    # New tests for title search
+    # Title and ticket filtering tests
 
     def test_filter_tickets_by_title(self):
         ticket = self.storage.add_ticket({
@@ -330,6 +331,7 @@ class TestTicketStorage(unittest.TestCase):
                 TicketStorage(path)
 
             self.assertEqual(storage.get_all_tickets(), [ticket])
+    # JSON persistence and loading tests
 
     def test_ticket_persists_after_reloading_storage(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -426,6 +428,108 @@ class TestTicketStorage(unittest.TestCase):
                 "Duplicate ticket ID",
             ):
                 TicketStorage(path)
+
+    def test_old_ticket_without_notes_loads_with_empty_notes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+
+            ticket = create_ticket(
+                "T001",
+                "Wi-Fi is down",
+                "Network",
+                "high",
+                15,
+            )
+            ticket.pop("notes", None)
+
+            path.write_text(json.dumps([ticket]), encoding="utf-8")
+
+            storage = TicketStorage(path)
+
+            self.assertEqual(
+                storage.get_ticket("T001")["notes"],
+                [],
+            )
+
+    def test_duplicate_note_ids_in_json_are_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+
+            ticket = create_ticket(
+                "T001",
+                "Wi-Fi is down",
+                "Network",
+                "high",
+                15,
+            )
+            ticket["notes"] = [
+                {
+                    "note_id": "N001",
+                    "author": "Ada",
+                    "message": "First network update",
+                },
+                {
+                    "note_id": "N001",
+                    "author": "Faith",
+                    "message": "Second network update",
+                },
+            ]
+
+            path.write_text(json.dumps([ticket]), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "Duplicate note ID",
+            ):
+                TicketStorage(path)
+
+    def test_invalid_note_message_in_json_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+
+            ticket = create_ticket(
+                "T001",
+                "Wi-Fi is down",
+                "Network",
+                "high",
+                15,
+            )
+            ticket["notes"] = [
+                {
+                    "note_id": "N001",
+                    "author": "Ada",
+                    "message": "Hi",
+                },
+            ]
+
+            path.write_text(json.dumps([ticket]), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "Invalid note data",
+            ):
+                TicketStorage(path)
+
+    def test_failed_reload_preserves_existing_tickets_in_memory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tickets.json"
+            storage = TicketStorage(path)
+
+            storage.add_ticket(self.ticket)
+            original_tickets = storage.get_all_tickets()
+
+            path.write_text("{broken", encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "Invalid JSON",
+            ):
+                storage._load()
+
+            self.assertEqual(
+                storage.get_all_tickets(),
+                original_tickets,
+            )
 
     def test_assignment_persists_after_reloading_storage(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -579,18 +683,18 @@ class TestTicketStorage(unittest.TestCase):
             self.assertIsNone(storage.get_ticket("T001"))
             self.assertEqual(storage.get_all_tickets(), [])
 
+    # Follow-up note tests
+
     def test_add_note_to_open_ticket(self):
         self.storage.add_ticket(self.ticket)
 
-        notes = self.storage.add_note(
+        note = self.storage.add_note(
             "T001",
             "Edwin",
             "Checked the network connection",
         )
 
-        self.assertEqual(len(notes), 1)
-
-        note = notes[-1]
+        self.assertEqual(note["note_id"], "N001")
 
         self.assertEqual(note["note_id"], "N001")
         self.assertEqual(note["author"], "Edwin")
@@ -599,7 +703,6 @@ class TestTicketStorage(unittest.TestCase):
             "Checked the network connection",
         )
 
-    #
     def test_second_note_gets_next_note_id(self):
         self.storage.add_ticket(self.ticket)
 
@@ -609,13 +712,13 @@ class TestTicketStorage(unittest.TestCase):
             "First network check",
         )
 
-        notes = self.storage.add_note(
+        note = self.storage.add_note(
             "T001",
             "Ada",
             "Second network check",
         )
 
-        self.assertEqual(notes[-1]["note_id"], "N002")
+        self.assertEqual(note["note_id"], "N002")
 
     def test_reject_note_on_resolved_ticket(self):
         self.storage.add_ticket(self.ticket)
@@ -664,13 +767,13 @@ class TestTicketStorage(unittest.TestCase):
                 "Hi",
             )
 
-        notes = self.storage.add_note(
+        note = self.storage.add_note(
             "T001",
             "Edwin",
             "Valid network update",
         )
 
-        self.assertEqual(notes[-1]["note_id"], "N001")
+        self.assertEqual(note["note_id"], "N001")
 
     def test_notes_persist_and_next_id_continues_after_reload(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -695,7 +798,7 @@ class TestTicketStorage(unittest.TestCase):
 
             reloaded_storage = TicketStorage(path)
 
-            second_notes = reloaded_storage.add_note(
+            second_note = reloaded_storage.add_note(
                 "T001",
                 "Ada",
                 "Second network update",
@@ -705,8 +808,9 @@ class TestTicketStorage(unittest.TestCase):
 
             self.assertEqual(len(notes), 2)
             self.assertEqual(notes[0]["note_id"], "N001")
-            self.assertEqual(second_notes[-1]["note_id"], "N002")
+            self.assertEqual(second_note["note_id"], "N002")
+            self.assertEqual(second_note["note_id"], "N002")
 
-        
+
 if __name__ == "__main__":
     unittest.main()

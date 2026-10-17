@@ -42,13 +42,21 @@ class TicketStorage:
             "assigned_to",
         }
 
-        for ticket in saved_tickets:
-            if (
-                not isinstance(ticket, dict)
-                or not required_fields.issubset(ticket)
-            ):
+        for saved_ticket in saved_tickets:
+            if not isinstance(saved_ticket, dict):
                 raise ValueError("Invalid ticket data in JSON storage")
 
+            # Copy the record so validation does not mutate the
+            # original dictionary loaded from the JSON list.
+            ticket = dict(saved_ticket)
+
+            # Older tickets may not have notes yet.
+            ticket.setdefault("notes", [])
+
+            if not required_fields.issubset(ticket):
+                raise ValueError("Invalid ticket data in JSON storage")
+
+            # Read the ID before using it in validation.
             ticket_id = ticket["id"]
 
             if (
@@ -71,6 +79,7 @@ class TicketStorage:
             if ticket["category"] not in VALID_CATEGORIES:
                 raise ValueError("Invalid ticket data in JSON storage")
 
+            # Validate urgency.
             if ticket["urgency"] not in ("low", "medium", "high"):
                 raise ValueError("Invalid ticket data in JSON storage")
 
@@ -80,6 +89,7 @@ class TicketStorage:
             ):
                 raise ValueError("Invalid ticket data in JSON storage")
 
+            # Validate that priority matches the application's rule.
             expected_priority = calculate_priority(
                 ticket["urgency"],
                 ticket["affected_users"],
@@ -345,6 +355,8 @@ class TicketStorage:
             number = int(existing_note["note_id"][1:])
             highest_number = max(highest_number, number)
 
+        note_id = f"N{highest_number + 1:03d}"
+
         note = {
             "note_id": f"N{highest_number + 1:03d}",
             "author": author.strip(),
@@ -364,7 +376,7 @@ class TicketStorage:
 
             raise
 
-        return list(notes)
+        return note
 
     def get_notes(self, ticket_id):
         ticket = self.get_ticket(ticket_id)

@@ -46,7 +46,7 @@ class TestTicketNotes(unittest.TestCase):
             "Checked the cable",
         )
 
-        self.assertEqual(result, expected)
+        self.assertEqual(result, expected[0])
 
         reloaded = TicketStorage(self.path)
         self.assertEqual(reloaded.get_notes("T001"), expected)
@@ -138,7 +138,7 @@ class TestTicketNotes(unittest.TestCase):
 
         notes = self.storage.add_note("T001", "Faith", "Added after reopen")
 
-        self.assertEqual(notes[-1]["note_id"], "N001")
+        self.assertEqual(notes["note_id"], "N001")
         self.assertEqual(len(self.storage.get_notes("T001")), 1)
 
     def test_ticket_without_notes_starts_with_empty_list(self):

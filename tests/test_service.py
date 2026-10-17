@@ -49,7 +49,7 @@ class TestTicketService(unittest.TestCase):
             "Checked the network connection",
         )
 
-        note = notes[-1]
+        note = notes
 
         self.assertEqual(note["note_id"], "N001")
         self.assertEqual(note["author"], "Edwin")
