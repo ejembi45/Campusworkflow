@@ -1,3 +1,4 @@
+
 [
   {
     "id": "T001",
@@ -8,7 +9,13 @@
     "priority": "high",
     "status": "open",
     "assigned_to": "Mathias",
-    "notes": []
+    "notes": [
+      {
+        "note_id": "N001",
+        "author": "faith",
+        "message": "i want this updated"
+      }
+    ]
   },
   {
     "id": "T002",
