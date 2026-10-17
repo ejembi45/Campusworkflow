@@ -32,13 +32,11 @@ class TestTicketNotes(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_note_is_saved_and_survives_reload(self):
-        expected = [
-            {
-                "note_id": "N001",
-                "author": "Faith",
-                "message": "Checked the cable",
-            }
-        ]
+        expected = {
+            "note_id": "N001",
+            "author": "Faith",
+            "message": "Checked the cable",
+        }
 
         result = self.storage.add_note(
             "T001",
@@ -46,10 +44,10 @@ class TestTicketNotes(unittest.TestCase):
             "Checked the cable",
         )
 
-        self.assertEqual(result, expected[0])
+        self.assertEqual(result, expected)
 
         reloaded = TicketStorage(self.path)
-        self.assertEqual(reloaded.get_notes("T001"), expected)
+        self.assertEqual(reloaded.get_notes("T001"), [expected])
 
     def test_note_ids_are_sequential(self):
         self.storage.add_note("T001", "Faith", "Checked the cable")
@@ -132,13 +130,21 @@ class TestTicketNotes(unittest.TestCase):
         self.storage.update_status("T001", "resolved")
 
         with self.assertRaises(ValueError):
-            self.storage.add_note("T001", "Faith", "Rejected while resolved")
+            self.storage.add_note(
+                "T001",
+                "Faith",
+                "Rejected while resolved",
+            )
 
         self.storage.update_status("T001", "open")
 
-        notes = self.storage.add_note("T001", "Faith", "Added after reopen")
+        note = self.storage.add_note(
+            "T001",
+            "Faith",
+            "Added after reopen",
+        )
 
-        self.assertEqual(notes["note_id"], "N001")
+        self.assertEqual(note["note_id"], "N001")
         self.assertEqual(len(self.storage.get_notes("T001")), 1)
 
     def test_ticket_without_notes_starts_with_empty_list(self):
